@@ -1,8 +1,7 @@
 
 'use client';
 
-import type { Metadata } from 'next';
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,11 +23,6 @@ interface ApiInteraction {
   timestamp?: string; 
   errorMessage?: string;
 }
-
-export const metadata: Metadata = {
-  title: 'Sentiment Analyzer',
-  description: 'Analyze text sentiment and view API interactions.',
-};
 
 export default function SentimentAnalyzerPage() {
   const [textToAnalyze, setTextToAnalyze] = useState<string>('');
@@ -68,7 +62,7 @@ export default function SentimentAnalyzerPage() {
       }
       const data: ApiInteraction = await response.json();
       setAnalysisResult(data);
-      toast({ title: 'Analysis Complete', description: `Sentiment: ${data.sentiment || 'N/A'}` });
+      // Sentiment is now displayed prominently in the result area
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error during analysis';
       setErrorMessages(prev => ({ ...prev, analyze: errorMessage }));
@@ -127,44 +121,48 @@ export default function SentimentAnalyzerPage() {
 
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden p-4 gap-4">
         {/* Sentiment Analysis Section */}
-        <section className="md:w-1/2 flex flex-col gap-4">
+        <div className="md:w-1/2 flex flex-col gap-4">
+          <h2>Sentiment Analysis</h2> {/* Added a clear heading */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center"><MessageSquareText className="mr-2 h-5 w-5 text-primary" />Analyze Sentiment</CardTitle>
+              <CardTitle className="flex items-center"><MessageSquareText className="mr-2 h-5 w-5 text-primary" />Analyze Text Sentiment</CardTitle>
               <CardDescription>Enter text to analyze its sentiment via your backend.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Textarea
-                placeholder="Enter text here..."
-                value={textToAnalyze}
-                onChange={(e) => setTextToAnalyze(e.target.value)}
-                rows={5}
-                className="resize-none"
-              />
-              <Button onClick={handleAnalyzeSentiment} disabled={loadingStates.analyze} className="w-full">
-                {loadingStates.analyze ? <Loader2 className="animate-spin" /> : 'Analyze Text'}
-              </Button>
+              {/* Organized input and button in a div */}
+              <div className="flex flex-col gap-2">
+                <Textarea
+                  placeholder="Enter text here..."
+                  value={textToAnalyze}
+                  onChange={(e) => setTextToAnalyze(e.target.value)}
+                  rows={5}
+                  className="resize-none"
+                />
+                <Button onClick={handleAnalyzeSentiment} disabled={loadingStates.analyze} className="w-full">
+                  {loadingStates.analyze ? <Loader2 className="animate-spin mr-2" /> : <MessageSquareText className="mr-2 h-4 w-4" />}
+                  {loadingStates.analyze ? 'Analyzing...' : 'Analyze Text'}
+                </Button>
+              </div>
+
               {errorMessages.analyze && (
                 <p className="text-sm text-destructive flex items-center"><AlertCircle className="mr-1 h-4 w-4" />{errorMessages.analyze}</p>
               )}
+
               {analysisResult && (
-                <Card className="bg-secondary/30">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Analysis Result</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-1 text-sm">
-                    <p><strong>API Name:</strong> {analysisResult.apiName}</p>
-                    <p><strong>Sentiment:</strong> <span className="font-semibold">{analysisResult.sentiment || 'N/A'}</span></p>
-                    <p><strong>Status:</strong> {analysisResult.status}</p>
-                    <p><strong>Response:</strong> {analysisResult.responsePayload}</p>
+                <Card className="bg-secondary/30 mt-4"> {/* Added margin top */}
+                  <CardContent className="p-4 space-y-2">
                     {analysisResult.errorMessage && <p><strong>Error:</strong> {analysisResult.errorMessage}</p>}
-                    <p className="text-xs text-muted-foreground">ID: {analysisResult.id}, Timestamp: {analysisResult.timestamp ? new Date(analysisResult.timestamp).toLocaleString() : 'N/A'}</p>
+                    {/* Display sentiment prominently */}
+                    <p className={`text-lg font-semibold ${analysisResult.sentiment === 'positive' ? 'text-green-600' : analysisResult.sentiment === 'negative' ? 'text-red-600' : analysisResult.sentiment === 'neutral' ? 'text-yellow-600' : ''}`}>
+                      Sentiment: {analysisResult.sentiment ? analysisResult.sentiment.charAt(0).toUpperCase() + analysisResult.sentiment.slice(1) : 'N/A'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">ID: {analysisResult.id || 'N/A'}, Timestamp: {analysisResult.timestamp ? new Date(analysisResult.timestamp).toLocaleString() : 'N/A'}</p>
                   </CardContent>
                 </Card>
               )}
             </CardContent>
           </Card>
-        </section>
+        </div>
 
         {/* Interactions Viewer Section */}
         <section className="md:w-1/2 flex flex-col gap-4">

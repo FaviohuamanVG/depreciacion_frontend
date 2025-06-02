@@ -4,7 +4,6 @@ import { useState, type CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileTree, type TreeNodeData } from '@/components/FileTree';
 import { CodeEditor } from '@/components/CodeEditor';
-import { generateAngularProject } from '@/ai/flows/generate-angular-project';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Wand2, Download, Github } from 'lucide-react';
 import JSZip from 'jszip';
@@ -29,37 +28,6 @@ export default function CodeStructurerPage() {
   const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
-  const handleGenerateProject = async () => {
-    setIsLoading(true);
-    setSelectedFilePath(null);
-    setSelectedFileContent(null);
-    setProjectFiles(null);
-    try {
-      const result = await generateAngularProject({
-        folderStructureDescription: FOLDER_STRUCTURE_DESCRIPTION,
-      });
-      if (result.projectFiles && Object.keys(result.projectFiles).length > 0) {
-        setProjectFiles(result.projectFiles);
-        toast({
-          title: 'Project Generated',
-          description: 'Angular project structure created successfully.',
-        });
-      } else {
-        throw new Error('Generated project has no files.');
-      }
-    } catch (error) {
-      console.error('Error generating project:', error);
-      toast({
-        title: 'Error',
-        description: `Failed to generate project: ${error instanceof Error ? error.message : String(error)}`,
-        variant: 'destructive',
-      });
-      setProjectFiles(null); // Clear any partial state
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleFileSelect = (path: string, content: string) => {
     setSelectedFilePath(path);
@@ -126,19 +94,6 @@ export default function CodeStructurerPage() {
           <h1 className="text-xl font-headline font-semibold">Code Structurer</h1>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            onClick={handleGenerateProject}
-            disabled={isLoading}
-            variant="outline"
-            size="sm"
-          >
-            {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Wand2 className="mr-2 h-4 w-4" />
-            )}
-            Generate Project
-          </Button>
           <Button 
             onClick={handleDownloadProject} 
             disabled={!projectFiles || isLoading}
@@ -171,17 +126,7 @@ export default function CodeStructurerPage() {
                 <h2 className="text-2xl font-headline mb-2">Welcome to Code Structurer</h2>
                 <p className="text-muted-foreground mb-6">
                   Generate a complete Angular project structure with a single click. <br />
-                  View, edit, and download your new project's skeleton.
-                </p>
-                <Button
-                  onClick={handleGenerateProject}
-                  disabled={isLoading}
-                  size="lg"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  <Wand2 className="mr-2 h-5 w-5" />
-                  Generate Your First Project
-                </Button>
+                  View, edit, and download your new project's skeleton.</p>
               </CardContent>
             </Card>
           )}
