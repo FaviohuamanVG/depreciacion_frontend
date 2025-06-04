@@ -22,7 +22,7 @@ interface ApiInteraction {
   input: string;
   output?: string;
   sentiment?: string;
-  status?: string;
+  estadoapi?: string; // Changed from status
   timestamp?: string;
   errorMessage?: string;
   positiveScore?: number;
@@ -58,7 +58,8 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, read: true }));
     setError(null);
     try {
-      const response = await fetch(API_BASE_URL);
+      // Use the /all endpoint to fetch all data including inactive
+      const response = await fetch(`${API_BASE_URL}/all`);
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
@@ -88,7 +89,7 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, create: true }));
     setError(null);
     try {
-      const response = await fetch(API_BASE_URL, {
+      const response = await fetch(API_BASE_URL, { // POST to base URL
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newText),
@@ -97,7 +98,7 @@ export default function SentimentCrudPage() {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      fetchSentimientos();
+      fetchSentimientos(); // Refresh list
       setNewText('');
       toast({ title: 'Success', description: 'Sentiment analyzed and saved.' });
     } catch (err) {
@@ -119,7 +120,7 @@ export default function SentimentCrudPage() {
     setSearchedInteraction(null);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/${interactionToSearch}`);
+      const response = await fetch(`${API_BASE_URL}/${interactionToSearch}`); // GET from base URL/{id}
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error('Interaction not found.');
@@ -142,7 +143,10 @@ export default function SentimentCrudPage() {
 
   // Open edit modal
   const openEditModal = (interaction: ApiInteraction) => {
-    if (interaction.isDeleted) return; // Prevent editing deleted items
+    if (interaction.isDeleted) {
+       toast({ title: 'Action Denied', description: 'Cannot edit a deactivated item. Please restore it first.', variant: 'default' });
+      return;
+    }
     setEditingInteraction(interaction);
     setEditText(interaction.input);
   };
@@ -154,7 +158,7 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, update: true }));
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/${editingInteraction.id}`, {
+      const response = await fetch(`${API_BASE_URL}/${editingInteraction.id}`, { // PUT to base URL/{id}
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editText),
@@ -163,7 +167,7 @@ export default function SentimentCrudPage() {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      fetchSentimientos();
+      fetchSentimientos(); // Refresh list
       setEditingInteraction(null);
       toast({ title: 'Success', description: 'Sentimiento updated.' });
     } catch (err) {
@@ -180,11 +184,11 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, delete: true }));
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/deactivate/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/deactivate/${id}`, { // PUT to base URL/deactivate/{id}
         method: 'PUT',
       });
-      if (response.status === 204 || response.ok) { // Spring Boot often returns 204 No Content on successful PUT/DELETE for void returns
-        fetchSentimientos();
+      if (response.status === 204 || response.ok) { 
+        fetchSentimientos(); // Refresh list
         toast({ title: 'Success', description: 'Sentimiento marked as deactivated.' });
       } else {
         const errorText = await response.text();
@@ -204,16 +208,15 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, restore: true }));
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/restore/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/restore/${id}`, { // PUT to base URL/restore/{id}
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' }, // Ensure content type if backend expects it, even for no body
+        headers: { 'Content-Type': 'application/json' }, 
       });
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      // const data = await response.json(); // Assuming restore returns the restored item, if not, response.ok is enough
-      fetchSentimientos();
+      fetchSentimientos(); // Refresh list
       toast({ title: 'Success', description: 'Sentimiento restored.' });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to restore sentimiento.';
@@ -230,7 +233,7 @@ export default function SentimentCrudPage() {
       <header className="p-4 border-b shadow-sm sticky top-0 bg-card z-10">
         <h1 className="text-xl font-semibold">Sentiment Text CRUD</h1>
         <p className="text-sm text-muted-foreground">
-          Manage text entries and their sentiment analysis via <code className="bg-muted px-1 rounded-sm">{API_BASE_URL}</code>
+          Manage text entries and their sentiment analysis. Fetches from <code className="bg-muted px-1 rounded-sm">{`${API_BASE_URL}/all`}</code>
         </p>
       </header>
 
@@ -287,7 +290,7 @@ export default function SentimentCrudPage() {
                 <CardContent className="space-y-1 text-sm">
                   <p className={cn(searchedInteraction.isDeleted && "line-through")}><strong>Text:</strong> {searchedInteraction.input}</p>
                   <p><strong>Sentiment:</strong> <span className={`font-semibold ${searchedInteraction.sentiment === 'positive' ? 'text-green-600' : searchedInteraction.sentiment === 'negative' ? 'text-red-600' : searchedInteraction.sentiment === 'neutral' ? 'text-yellow-600' : ''}`}>{searchedInteraction.sentiment || 'N/A'}</span></p>
-                  <p><strong>Status:</strong> {searchedInteraction.status}</p>
+                  <p><strong>Estado API:</strong> {searchedInteraction.estadoapi}</p>
                   {searchedInteraction.errorMessage && <p><strong>Error Message:</strong> {searchedInteraction.errorMessage}</p>}
                   {searchedInteraction.output && <p><strong>Output:</strong> {searchedInteraction.output}</p>}
                 </CardContent>
@@ -317,7 +320,7 @@ export default function SentimentCrudPage() {
                     <TableRow>
                       <TableHead className="w-[200px]">Text</TableHead>
                       <TableHead>Sentiment</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Estado API</TableHead>
                       <TableHead>Timestamp</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -331,7 +334,7 @@ export default function SentimentCrudPage() {
                             {s.sentiment || 'N/A'}
                           </span>
                         </TableCell>
-                        <TableCell>{s.status} {s.isDeleted && <span className="text-xs text-destructive ml-1">(Deactivated)</span>}</TableCell>
+                        <TableCell>{s.estadoapi} {s.isDeleted && <span className="text-xs text-destructive ml-1">(Deactivated)</span>}</TableCell>
                         <TableCell>{s.timestamp ? new Date(s.timestamp).toLocaleString() : 'N/A'}</TableCell>
                         <TableCell className="text-right space-x-2">
                           {!s.isDeleted && (
@@ -434,3 +437,5 @@ export default function SentimentCrudPage() {
     </div>
   );
 }
+
+    
