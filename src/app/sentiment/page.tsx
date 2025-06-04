@@ -17,8 +17,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_SENTIMIENTOS_URL || 'http://loc
 
 interface ApiInteraction {
   id?: string;
-  apiName?: string; // May not be directly used by this controller, but kept for consistency
-  requestPayload: string; // The text analyzed
+  apiName?: string; 
+  texto: string; // The text analyzed
+  requestPayload?: string; // Kept for potential other uses or if backend sends both
   responsePayload?: string; // Backend response message
   sentiment?: string; // "positive", "negative", "neutral"
   status?: string; // "success", "error"
@@ -84,16 +85,15 @@ export default function SentimentCrudPage() {
     try {
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }, // Assuming backend expects JSON with a field
-        body: JSON.stringify(newText), // Send as raw string, as per controller: @RequestBody String texto
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(newText), 
       });
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      const created: ApiInteraction = await response.json();
-      // setSentimientos(prev => [created, ...prev].sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime()));
-      fetchSentimientos(); // Refetch to get the latest list with ID and timestamp
+      // const created: ApiInteraction = await response.json(); // Backend returns created object
+      fetchSentimientos(); 
       setNewText('');
       toast({ title: 'Success', description: 'Sentiment analyzed and saved.' });
     } catch (err) {
@@ -113,7 +113,7 @@ export default function SentimentCrudPage() {
     }
     setIsLoading(prev => ({...prev, search: true}));
     setSearchedInteraction(null);
-    setError(null);
+    setError(null); // Clear previous search errors
     try {
       const response = await fetch(`${API_BASE_URL}/${interactionToSearch}`);
       if (!response.ok) {
@@ -128,7 +128,8 @@ export default function SentimentCrudPage() {
       toast({ title: 'Search Successful', description: `Found interaction ID: ${data.id}`});
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to search interaction.';
-      setError(errorMessage);
+      setError(errorMessage); // Set error for display
+      setSearchedInteraction(null); // Clear any previous search result
       toast({ title: 'Search Failed', description: errorMessage, variant: 'destructive' });
     } finally {
       setIsLoading(prev => ({...prev, search: false}));
@@ -139,7 +140,7 @@ export default function SentimentCrudPage() {
   // Open edit modal
   const openEditModal = (interaction: ApiInteraction) => {
     setEditingInteraction(interaction);
-    setEditText(interaction.requestPayload);
+    setEditText(interaction.texto); // Use 'texto' field
   };
 
   // Update sentimiento
@@ -152,15 +153,14 @@ export default function SentimentCrudPage() {
       const response = await fetch(`${API_BASE_URL}/${editingInteraction.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editText), // Send as raw string
+        body: JSON.stringify(editText), 
       });
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      const updated: ApiInteraction = await response.json();
-      // setSentimientos(prev => prev.map(s => s.id === updated.id ? updated : s).sort((a,b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime()));
-      fetchSentimientos(); // Refetch to ensure data consistency
+      // const updated: ApiInteraction = await response.json(); // Backend returns updated object
+      fetchSentimientos(); 
       setEditingInteraction(null);
       toast({ title: 'Success', description: 'Sentimiento updated.' });
     } catch (err) {
@@ -184,12 +184,12 @@ export default function SentimentCrudPage() {
          if (response.status === 204) { // No Content, successful deletion
              // Proceed as success
          } else {
-            const errorText = await response.text();
-            throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
+            const errorText = await response.text(); // Try to get error text even for non-204 success
+            if(response.status < 200 || response.status >=300) // if it's actually an error
+              throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
          }
       }
-      // setSentimientos(prev => prev.filter(s => s.id !== id));
-      fetchSentimientos(); // Refetch
+      fetchSentimientos(); 
       toast({ title: 'Success', description: 'Sentimiento deleted.' });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete sentimiento.';
@@ -252,7 +252,7 @@ export default function SentimentCrudPage() {
                 {isLoading.search ? <Loader2 className="animate-spin" /> : <Search className="h-4 w-4" />}
               </Button>
             </div>
-            {isLoading.search && <Loader2 className="animate-spin text-primary mx-auto my-2" />}
+            {isLoading.search && <div className="flex justify-center py-2"><Loader2 className="animate-spin text-primary" /></div>}
             {searchedInteraction && !isLoading.search && (
               <Card className="bg-secondary/30">
                 <CardHeader>
@@ -260,7 +260,7 @@ export default function SentimentCrudPage() {
                   <CardDescription>Timestamp: {searchedInteraction.timestamp ? new Date(searchedInteraction.timestamp).toLocaleString() : 'N/A'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-1 text-sm">
-                  <p><strong>Text:</strong> {searchedInteraction.requestPayload}</p>
+                  <p><strong>Text:</strong> {searchedInteraction.texto}</p>
                   <p><strong>Sentiment:</strong> <span className={`font-semibold ${searchedInteraction.sentiment === 'positive' ? 'text-green-600' : searchedInteraction.sentiment === 'negative' ? 'text-red-600' : searchedInteraction.sentiment === 'neutral' ? 'text-yellow-600' : ''}`}>{searchedInteraction.sentiment || 'N/A'}</span></p>
                   <p><strong>Status:</strong> {searchedInteraction.status}</p>
                   {searchedInteraction.errorMessage && <p><strong>Error Message:</strong> {searchedInteraction.errorMessage}</p>}
@@ -268,26 +268,25 @@ export default function SentimentCrudPage() {
                 </CardContent>
               </Card>
             )}
-            {!isLoading.search && error && interactionToSearch && <p className="text-destructive text-sm mt-2 flex items-center"><AlertCircle className="mr-1 h-4 w-4" />{error}</p>}
-
+            {!isLoading.search && error && interactionToSearch && !searchedInteraction && <p className="text-destructive text-sm mt-2 flex items-center"><AlertCircle className="mr-1 h-4 w-4" />{error}</p>}
           </CardContent>
         </Card>
 
 
         {/* List Section */}
-        <Card className="lg:col-span-2"> {/* Make list span both columns on large screens */}
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Stored Sentiment Texts</CardTitle>
             <CardDescription>View, edit, or delete stored text entries.</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading.read && <div className="flex justify-center py-4"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>}
-            {!isLoading.read && error && <p className="text-destructive flex items-center"><AlertCircle className="mr-1 h-4 w-4" />{error}</p>}
+            {!isLoading.read && error && sentimientos.length === 0 && <p className="text-destructive flex items-center"><AlertCircle className="mr-1 h-4 w-4" />{error}</p>}
             {!isLoading.read && !error && sentimientos.length === 0 && (
               <p className="text-center text-muted-foreground py-4">No sentiment texts found. Add some!</p>
             )}
             {!isLoading.read && !error && sentimientos.length > 0 && (
-              <ScrollArea className="h-[400px] lg:h-[500px] pr-3"> {/* Added pr-3 for scrollbar spacing */}
+              <ScrollArea className="h-[400px] lg:h-[500px] pr-3">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -301,7 +300,7 @@ export default function SentimentCrudPage() {
                   <TableBody>
                     {sentimientos.map((s) => (
                       <TableRow key={s.id}>
-                        <TableCell className="font-medium truncate max-w-xs">{s.requestPayload}</TableCell>
+                        <TableCell className="font-medium truncate max-w-xs">{s.texto}</TableCell>
                         <TableCell>
                           <span className={`font-semibold ${s.sentiment === 'positive' ? 'text-green-600' : s.sentiment === 'negative' ? 'text-red-600' : s.sentiment === 'neutral' ? 'text-yellow-600' : ''}`}>
                             {s.sentiment || 'N/A'}
@@ -316,7 +315,7 @@ export default function SentimentCrudPage() {
                                 <Edit className="h-4 w-4" />
                               </Button>
                             </DialogTrigger>
-                            {/* Edit Dialog Content is now separate for clarity */}
+                            {/* Edit Dialog Content is now separate and managed by editingInteraction state */}
                           </Dialog>
                           <Dialog>
                             <DialogTrigger asChild>
@@ -329,7 +328,7 @@ export default function SentimentCrudPage() {
                                 <DialogTitle>Confirm Deletion</DialogTitle>
                                 <DialogDescription>
                                   Are you sure you want to delete this text entry? This action cannot be undone.
-                                  <br/><strong>Text:</strong> {s.requestPayload}
+                                  <br/><strong>Text:</strong> {s.texto}
                                 </DialogDescription>
                               </DialogHeader>
                               <DialogFooter>
@@ -339,12 +338,14 @@ export default function SentimentCrudPage() {
                                 <Button
                                   variant="destructive"
                                   onClick={() => {
-                                      if(s.id) handleDeleteSentimiento(s.id);
-                                      // Find a way to close dialog after action:
-                                      // This might require managing open state of this specific dialog.
-                                      // For now, it will close if handleDeleteSentimiento is successful
-                                      // and list re-renders. A more robust solution might involve
-                                      // passing a close callback or managing Dialog's open prop.
+                                      if(s.id) {
+                                        handleDeleteSentimiento(s.id).then(() => {
+                                          const closeButton = document.querySelector('[data-radix-dialog-close]');
+                                          if (closeButton instanceof HTMLElement) {
+                                            // closeButton.click(); // This might not always work depending on how DialogClose is implemented internally
+                                          }
+                                        });
+                                      }
                                   }}
                                   disabled={isLoading.delete}
                                 >
