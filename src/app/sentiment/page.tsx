@@ -18,13 +18,16 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_SENTIMIENTOS_URL || 'https://80
 interface ApiInteraction {
   id?: string;
   apiName?: string; 
-  texto: string; // The text analyzed
-  requestPayload?: string; // Kept for potential other uses or if backend sends both
-  responsePayload?: string; // Backend response message
+  input: string; // The text analyzed - changed from 'texto'
+  requestPayload?: string; 
+  output?: string; // Backend response message - changed from 'responsePayload'
   sentiment?: string; // "positive", "negative", "neutral"
   status?: string; // "success", "error"
   timestamp?: string; // ISO date string
   errorMessage?: string;
+  positiveScore?: number;
+  neutralScore?: number;
+  negativeScore?: number;
 }
 
 export default function SentimentCrudPage() {
@@ -140,7 +143,7 @@ export default function SentimentCrudPage() {
   // Open edit modal
   const openEditModal = (interaction: ApiInteraction) => {
     setEditingInteraction(interaction);
-    setEditText(interaction.texto); // Use 'texto' field
+    setEditText(interaction.input); // Use 'input' field
   };
 
   // Update sentimiento
@@ -260,11 +263,11 @@ export default function SentimentCrudPage() {
                   <CardDescription>Timestamp: {searchedInteraction.timestamp ? new Date(searchedInteraction.timestamp).toLocaleString() : 'N/A'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-1 text-sm">
-                  <p><strong>Text:</strong> {searchedInteraction.texto}</p>
+                  <p><strong>Text:</strong> {searchedInteraction.input}</p>
                   <p><strong>Sentiment:</strong> <span className={`font-semibold ${searchedInteraction.sentiment === 'positive' ? 'text-green-600' : searchedInteraction.sentiment === 'negative' ? 'text-red-600' : searchedInteraction.sentiment === 'neutral' ? 'text-yellow-600' : ''}`}>{searchedInteraction.sentiment || 'N/A'}</span></p>
                   <p><strong>Status:</strong> {searchedInteraction.status}</p>
                   {searchedInteraction.errorMessage && <p><strong>Error Message:</strong> {searchedInteraction.errorMessage}</p>}
-                  {searchedInteraction.responsePayload && <p><strong>Response:</strong> {searchedInteraction.responsePayload}</p>}
+                  {searchedInteraction.output && <p><strong>Output:</strong> {searchedInteraction.output}</p>}
                 </CardContent>
               </Card>
             )}
@@ -300,7 +303,7 @@ export default function SentimentCrudPage() {
                   <TableBody>
                     {sentimientos.map((s) => (
                       <TableRow key={s.id}>
-                        <TableCell className="font-medium truncate max-w-xs">{s.texto}</TableCell>
+                        <TableCell className="font-medium truncate max-w-xs">{s.input}</TableCell>
                         <TableCell>
                           <span className={`font-semibold ${s.sentiment === 'positive' ? 'text-green-600' : s.sentiment === 'negative' ? 'text-red-600' : s.sentiment === 'neutral' ? 'text-yellow-600' : ''}`}>
                             {s.sentiment || 'N/A'}
@@ -328,7 +331,7 @@ export default function SentimentCrudPage() {
                                 <DialogTitle>Confirm Deletion</DialogTitle>
                                 <DialogDescription>
                                   Are you sure you want to delete this text entry? This action cannot be undone.
-                                  <br/><strong>Text:</strong> {s.texto}
+                                  <br/><strong>Text:</strong> {s.input}
                                 </DialogDescription>
                               </DialogHeader>
                               <DialogFooter>
