@@ -22,13 +22,12 @@ interface ApiInteraction {
   input: string;
   output?: string;
   sentiment?: string;
-  estadoapi?: string; // Changed from status
+  estadoapi?: string; 
   timestamp?: string;
   errorMessage?: string;
   positiveScore?: number;
   neutralScore?: number;
   negativeScore?: number;
-  isDeleted?: boolean;
 }
 
 export default function SentimentCrudPage() {
@@ -46,7 +45,7 @@ export default function SentimentCrudPage() {
     create: false,
     read: true,
     update: false,
-    delete: false, // Corresponds to "deactivate"
+    delete: false, 
     search: false,
     restore: false,
   });
@@ -58,7 +57,6 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, read: true }));
     setError(null);
     try {
-      // Use the /all endpoint to fetch all data including inactive
       const response = await fetch(`${API_BASE_URL}/all`);
       if (!response.ok) {
         const errorText = await response.text();
@@ -89,7 +87,7 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, create: true }));
     setError(null);
     try {
-      const response = await fetch(API_BASE_URL, { // POST to base URL
+      const response = await fetch(API_BASE_URL, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newText),
@@ -98,7 +96,7 @@ export default function SentimentCrudPage() {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      fetchSentimientos(); // Refresh list
+      fetchSentimientos(); 
       setNewText('');
       toast({ title: 'Success', description: 'Sentiment analyzed and saved.' });
     } catch (err) {
@@ -120,7 +118,7 @@ export default function SentimentCrudPage() {
     setSearchedInteraction(null);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/${interactionToSearch}`); // GET from base URL/{id}
+      const response = await fetch(`${API_BASE_URL}/${interactionToSearch}`); 
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error('Interaction not found.');
@@ -143,7 +141,7 @@ export default function SentimentCrudPage() {
 
   // Open edit modal
   const openEditModal = (interaction: ApiInteraction) => {
-    if (interaction.isDeleted) {
+    if (interaction.estadoapi === 'INACTIVO') {
        toast({ title: 'Action Denied', description: 'Cannot edit a deactivated item. Please restore it first.', variant: 'default' });
       return;
     }
@@ -158,7 +156,7 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, update: true }));
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/${editingInteraction.id}`, { // PUT to base URL/{id}
+      const response = await fetch(`${API_BASE_URL}/${editingInteraction.id}`, { 
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editText),
@@ -167,7 +165,7 @@ export default function SentimentCrudPage() {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      fetchSentimientos(); // Refresh list
+      fetchSentimientos(); 
       setEditingInteraction(null);
       toast({ title: 'Success', description: 'Sentimiento updated.' });
     } catch (err) {
@@ -184,11 +182,11 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, delete: true }));
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/deactivate/${id}`, { // PUT to base URL/deactivate/{id}
+      const response = await fetch(`${API_BASE_URL}/deactivate/${id}`, { 
         method: 'PUT',
       });
       if (response.status === 204 || response.ok) { 
-        fetchSentimientos(); // Refresh list
+        fetchSentimientos(); 
         toast({ title: 'Success', description: 'Sentimiento marked as deactivated.' });
       } else {
         const errorText = await response.text();
@@ -208,7 +206,7 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, restore: true }));
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/restore/${id}`, { // PUT to base URL/restore/{id}
+      const response = await fetch(`${API_BASE_URL}/restore/${id}`, { 
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' }, 
       });
@@ -216,7 +214,7 @@ export default function SentimentCrudPage() {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      fetchSentimientos(); // Refresh list
+      fetchSentimientos(); 
       toast({ title: 'Success', description: 'Sentimiento restored.' });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to restore sentimiento.';
@@ -238,7 +236,7 @@ export default function SentimentCrudPage() {
       </header>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 overflow-y-auto">
-        {/* Create Section */}
+        
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center"><PlusCircle className="mr-2 h-5 w-5 text-primary" />Analyze & Save New Text</CardTitle>
@@ -262,7 +260,7 @@ export default function SentimentCrudPage() {
           </CardContent>
         </Card>
 
-        {/* Search Section */}
+        
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center"><Search className="mr-2 h-5 w-5 text-primary" />Search Interaction by ID</CardTitle>
@@ -282,13 +280,13 @@ export default function SentimentCrudPage() {
             </div>
             {isLoading.search && <div className="flex justify-center py-2"><Loader2 className="animate-spin text-primary" /></div>}
             {searchedInteraction && !isLoading.search && (
-              <Card className={cn("bg-secondary/30", searchedInteraction.isDeleted && "opacity-60")}>
+              <Card className={cn("bg-secondary/30", searchedInteraction.estadoapi === 'INACTIVO' && "opacity-60")}>
                 <CardHeader>
-                  <CardTitle className="text-base">ID: {searchedInteraction.id} {searchedInteraction.isDeleted && <span className="text-xs text-destructive ml-2">(Deactivated)</span>}</CardTitle>
+                  <CardTitle className="text-base">ID: {searchedInteraction.id} {searchedInteraction.estadoapi === 'INACTIVO' && <span className="text-xs text-destructive ml-2">(Deactivated)</span>}</CardTitle>
                   <CardDescription>Timestamp: {searchedInteraction.timestamp ? new Date(searchedInteraction.timestamp).toLocaleString() : 'N/A'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-1 text-sm">
-                  <p className={cn(searchedInteraction.isDeleted && "line-through")}><strong>Text:</strong> {searchedInteraction.input}</p>
+                  <p className={cn(searchedInteraction.estadoapi === 'INACTIVO' && "line-through")}><strong>Text:</strong> {searchedInteraction.input}</p>
                   <p><strong>Sentiment:</strong> <span className={`font-semibold ${searchedInteraction.sentiment === 'positive' ? 'text-green-600' : searchedInteraction.sentiment === 'negative' ? 'text-red-600' : searchedInteraction.sentiment === 'neutral' ? 'text-yellow-600' : ''}`}>{searchedInteraction.sentiment || 'N/A'}</span></p>
                   <p><strong>Estado API:</strong> {searchedInteraction.estadoapi}</p>
                   {searchedInteraction.errorMessage && <p><strong>Error Message:</strong> {searchedInteraction.errorMessage}</p>}
@@ -301,7 +299,7 @@ export default function SentimentCrudPage() {
         </Card>
 
 
-        {/* List Section */}
+        
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Stored Sentiment Texts</CardTitle>
@@ -327,27 +325,27 @@ export default function SentimentCrudPage() {
                   </TableHeader>
                   <TableBody>
                     {sentimientos.map((s) => (
-                      <TableRow key={s.id} className={cn(s.isDeleted && "opacity-50")}>
-                        <TableCell className={cn("font-medium truncate max-w-xs", s.isDeleted && "line-through")}>{s.input}</TableCell>
+                      <TableRow key={s.id} className={cn(s.estadoapi === 'INACTIVO' && "opacity-50")}>
+                        <TableCell className={cn("font-medium truncate max-w-xs", s.estadoapi === 'INACTIVO' && "line-through")}>{s.input}</TableCell>
                         <TableCell>
                           <span className={`font-semibold ${s.sentiment === 'positive' ? 'text-green-600' : s.sentiment === 'negative' ? 'text-red-600' : s.sentiment === 'neutral' ? 'text-yellow-600' : ''}`}>
                             {s.sentiment || 'N/A'}
                           </span>
                         </TableCell>
-                        <TableCell>{s.estadoapi} {s.isDeleted && <span className="text-xs text-destructive ml-1">(Deactivated)</span>}</TableCell>
+                        <TableCell>{s.estadoapi} {s.estadoapi === 'INACTIVO' && <span className="text-xs text-destructive ml-1">(Deactivated)</span>}</TableCell>
                         <TableCell>{s.timestamp ? new Date(s.timestamp).toLocaleString() : 'N/A'}</TableCell>
                         <TableCell className="text-right space-x-2">
-                          {!s.isDeleted && (
+                          {s.estadoapi !== 'INACTIVO' && (
                             <Dialog>
                               <DialogTrigger asChild>
-                                <Button variant="outline" size="icon" onClick={() => openEditModal(s)} disabled={isLoading.update || isLoading.delete || isLoading.restore || s.isDeleted}>
+                                <Button variant="outline" size="icon" onClick={() => openEditModal(s)} disabled={isLoading.update || isLoading.delete || isLoading.restore || s.estadoapi === 'INACTIVO'}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
                               </DialogTrigger>
-                              {/* Edit Dialog Content is now separate and managed by editingInteraction state */}
+                              
                             </Dialog>
                           )}
-                          {s.isDeleted ? (
+                          {s.estadoapi === 'INACTIVO' ? (
                             <Button
                               variant="outline"
                               size="icon"
@@ -405,9 +403,9 @@ export default function SentimentCrudPage() {
         </Card>
       </div>
 
-      {/* Edit Modal */}
-      {editingInteraction && !editingInteraction.isDeleted && (
-        <Dialog open={!!editingInteraction && !editingInteraction.isDeleted} onOpenChange={(isOpen) => !isOpen && setEditingInteraction(null)}>
+      
+      {editingInteraction && editingInteraction.estadoapi !== 'INACTIVO' && (
+        <Dialog open={!!editingInteraction && editingInteraction.estadoapi !== 'INACTIVO'} onOpenChange={(isOpen) => !isOpen && setEditingInteraction(null)}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit Sentiment Text</DialogTitle>
@@ -437,5 +435,4 @@ export default function SentimentCrudPage() {
     </div>
   );
 }
-
     
