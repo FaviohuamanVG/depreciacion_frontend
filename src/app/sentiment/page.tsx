@@ -20,7 +20,6 @@ interface ApiInteraction {
   id?: string;
   apiName?: string;
   input: string; 
-  requestPayload?: string;
   output?: string; 
   sentiment?: string; 
   status?: string; 
@@ -29,7 +28,7 @@ interface ApiInteraction {
   positiveScore?: number;
   neutralScore?: number;
   negativeScore?: number;
-  isDeleted?: boolean; // Added for logical delete
+  isDeleted?: boolean; 
 }
 
 export default function SentimentCrudPage() {
@@ -143,6 +142,7 @@ export default function SentimentCrudPage() {
 
   // Open edit modal
   const openEditModal = (interaction: ApiInteraction) => {
+    if (interaction.isDeleted) return; // Prevent editing deleted items
     setEditingInteraction(interaction);
     setEditText(interaction.input); 
   };
@@ -175,26 +175,26 @@ export default function SentimentCrudPage() {
     }
   };
 
-  // Delete sentimiento (logical delete)
-  const handleDeleteSentimiento = async (id: string) => {
+  // Deactivate/Logical Delete sentimiento
+  const handleDeactivateSentimiento = async (id: string) => {
     setIsLoading(prev => ({ ...prev, delete: true }));
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/${id}`, {
-        method: 'DELETE',
+      const response = await fetch(`${API_BASE_URL}/deactivate/${id}`, { // Updated URL and method
+        method: 'PUT',
       });
-      // For DELETE, Spring Boot often returns 204 No Content on success
+      // For PUT /deactivate, Spring Boot often returns 204 No Content on success
       if (response.status === 204 || response.ok) {
         fetchSentimientos(); 
-        toast({ title: 'Success', description: 'Sentimiento marked as deleted.' });
+        toast({ title: 'Success', description: 'Sentimiento marked as deactivated.' });
       } else {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete sentimiento.';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to deactivate sentimiento.';
       setError(errorMessage);
-      toast({ title: 'Deletion Failed', description: errorMessage, variant: 'destructive' });
+      toast({ title: 'Deactivation Failed', description: errorMessage, variant: 'destructive' });
     } finally {
       setIsLoading(prev => ({ ...prev, delete: false }));
     }
@@ -213,6 +213,7 @@ export default function SentimentCrudPage() {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
+      const data = await response.json(); // Assuming restore returns the restored item
       fetchSentimientos();
       toast({ title: 'Success', description: 'Sentimiento restored.' });
     } catch (err) {
@@ -281,7 +282,7 @@ export default function SentimentCrudPage() {
             {searchedInteraction && !isLoading.search && (
               <Card className={cn("bg-secondary/30", searchedInteraction.isDeleted && "opacity-60")}>
                 <CardHeader>
-                  <CardTitle className="text-base">ID: {searchedInteraction.id} {searchedInteraction.isDeleted && <span className="text-xs text-destructive ml-2">(Deleted)</span>}</CardTitle>
+                  <CardTitle className="text-base">ID: {searchedInteraction.id} {searchedInteraction.isDeleted && <span className="text-xs text-destructive ml-2">(Deactivated)</span>}</CardTitle>
                   <CardDescription>Timestamp: {searchedInteraction.timestamp ? new Date(searchedInteraction.timestamp).toLocaleString() : 'N/A'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-1 text-sm">
@@ -302,7 +303,7 @@ export default function SentimentCrudPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Stored Sentiment Texts</CardTitle>
-            <CardDescription>View, edit, or delete/restore stored text entries.</CardDescription>
+            <CardDescription>View, edit, or deactivate/restore stored text entries.</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading.read && <div className="flex justify-center py-4"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>}
@@ -331,13 +332,13 @@ export default function SentimentCrudPage() {
                             {s.sentiment || 'N/A'}
                           </span>
                         </TableCell>
-                        <TableCell>{s.status} {s.isDeleted && <span className="text-xs text-destructive ml-1">(Deleted)</span>}</TableCell>
+                        <TableCell>{s.status} {s.isDeleted && <span className="text-xs text-destructive ml-1">(Deactivated)</span>}</TableCell>
                         <TableCell>{s.timestamp ? new Date(s.timestamp).toLocaleString() : 'N/A'}</TableCell>
                         <TableCell className="text-right space-x-2">
                           {!s.isDeleted && (
                             <Dialog>
                               <DialogTrigger asChild>
-                                <Button variant="outline" size="icon" onClick={() => openEditModal(s)} disabled={isLoading.update || isLoading.delete || isLoading.restore}>
+                                <Button variant="outline" size="icon" onClick={() => openEditModal(s)} disabled={isLoading.update || isLoading.delete || isLoading.restore || s.isDeleted}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
                               </DialogTrigger>
@@ -352,7 +353,7 @@ export default function SentimentCrudPage() {
                               disabled={isLoading.restore || isLoading.delete || isLoading.update}
                               title="Restore"
                             >
-                              {isLoading.restore && isLoading.delete === false && isLoading.update === false ? <Loader2 className="animate-spin h-4 w-4" /> : <Undo2 className="h-4 w-4" />}
+                              {isLoading.restore && !(isLoading.delete || isLoading.update) ? <Loader2 className="animate-spin h-4 w-4" /> : <Undo2 className="h-4 w-4" />}
                             </Button>
                           ) : (
                             <Dialog>
@@ -363,9 +364,9 @@ export default function SentimentCrudPage() {
                               </DialogTrigger>
                               <DialogContent>
                                 <DialogHeader>
-                                  <DialogTitle>Confirm Deletion</DialogTitle>
+                                  <DialogTitle>Confirm Deactivation</DialogTitle>
                                   <DialogDescription>
-                                    Are you sure you want to mark this text entry as deleted? It can be restored later.
+                                    Are you sure you want to mark this text entry as deactivated? It can be restored later.
                                     <br/><strong>Text:</strong> {s.input}
                                   </DialogDescription>
                                 </DialogHeader>
@@ -377,17 +378,15 @@ export default function SentimentCrudPage() {
                                     variant="destructive"
                                     onClick={() => {
                                         if(s.id) {
-                                          handleDeleteSentimiento(s.id).then(() => {
-                                            // Optional: close dialog if needed, though fetchSentimientos will refresh list
-                                            // const closeButton = document.querySelector('[data-radix-dialog-close]');
-                                            // if (closeButton instanceof HTMLElement) closeButton.click();
+                                          handleDeactivateSentimiento(s.id).then(() => {
+                                            // Optional: close dialog if needed
                                           });
                                         }
                                     }}
                                     disabled={isLoading.delete}
                                   >
                                     {isLoading.delete && <Loader2 className="animate-spin mr-2" />}
-                                    Delete
+                                    Deactivate
                                   </Button>
                                 </DialogFooter>
                               </DialogContent>
@@ -439,3 +438,5 @@ export default function SentimentCrudPage() {
     
 
   
+
+    
