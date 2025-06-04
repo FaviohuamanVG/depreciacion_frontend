@@ -13,7 +13,7 @@ import { Loader2, MessageSquareText, Edit, Trash2, PlusCircle, AlertCircle, Sear
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Base URL for your Spring Boot backend's sentiment API
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_SENTIMIENTOS_URL || 'http://localhost:8080/api/sentimientos';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_SENTIMIENTOS_URL || 'https://8080-firebase-cognitiveapisgit-1748893329986.cluster-4xpux6pqdzhrktbhjf2cumyqtg.cloudworkstations.dev/api/sentimientos';
 
 interface ApiInteraction {
   id?: string;
@@ -398,4 +398,6 @@ export default function SentimentCrudPage() {
     </div>
   );
 }
+    
+
     
