@@ -19,25 +19,25 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_SENTIMIENTOS_URL || 'https://80
 interface ApiInteraction {
   id?: string;
   apiName?: string;
-  input: string; 
-  output?: string; 
-  sentiment?: string; 
-  status?: string; 
-  timestamp?: string; 
+  input: string;
+  output?: string;
+  sentiment?: string;
+  status?: string;
+  timestamp?: string;
   errorMessage?: string;
   positiveScore?: number;
   neutralScore?: number;
   negativeScore?: number;
-  isDeleted?: boolean; 
+  isDeleted?: boolean;
 }
 
 export default function SentimentCrudPage() {
   const [sentimientos, setSentimientos] = useState<ApiInteraction[]>([]);
   const [newText, setNewText] = useState<string>('');
-  
+
   const [editingInteraction, setEditingInteraction] = useState<ApiInteraction | null>(null);
   const [editText, setEditText] = useState<string>('');
-  
+
   const [interactionToSearch, setInteractionToSearch] = useState<string>('');
   const [searchedInteraction, setSearchedInteraction] = useState<ApiInteraction | null>(null);
 
@@ -46,7 +46,7 @@ export default function SentimentCrudPage() {
     create: false,
     read: true,
     update: false,
-    delete: false,
+    delete: false, // Corresponds to "deactivate"
     search: false,
     restore: false,
   });
@@ -90,14 +90,14 @@ export default function SentimentCrudPage() {
     try {
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(newText), 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newText),
       });
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      fetchSentimientos(); 
+      fetchSentimientos();
       setNewText('');
       toast({ title: 'Success', description: 'Sentiment analyzed and saved.' });
     } catch (err) {
@@ -108,7 +108,7 @@ export default function SentimentCrudPage() {
       setIsLoading(prev => ({ ...prev, create: false }));
     }
   };
-  
+
   // Handle search by ID
   const handleSearchById = async () => {
     if (!interactionToSearch.trim()) {
@@ -117,7 +117,7 @@ export default function SentimentCrudPage() {
     }
     setIsLoading(prev => ({...prev, search: true}));
     setSearchedInteraction(null);
-    setError(null); 
+    setError(null);
     try {
       const response = await fetch(`${API_BASE_URL}/${interactionToSearch}`);
       if (!response.ok) {
@@ -132,8 +132,8 @@ export default function SentimentCrudPage() {
       toast({ title: 'Search Successful', description: `Found interaction ID: ${data.id}`});
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to search interaction.';
-      setError(errorMessage); 
-      setSearchedInteraction(null); 
+      setError(errorMessage);
+      setSearchedInteraction(null);
       toast({ title: 'Search Failed', description: errorMessage, variant: 'destructive' });
     } finally {
       setIsLoading(prev => ({...prev, search: false}));
@@ -144,7 +144,7 @@ export default function SentimentCrudPage() {
   const openEditModal = (interaction: ApiInteraction) => {
     if (interaction.isDeleted) return; // Prevent editing deleted items
     setEditingInteraction(interaction);
-    setEditText(interaction.input); 
+    setEditText(interaction.input);
   };
 
   // Update sentimiento
@@ -157,13 +157,13 @@ export default function SentimentCrudPage() {
       const response = await fetch(`${API_BASE_URL}/${editingInteraction.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editText), 
+        body: JSON.stringify(editText),
       });
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      fetchSentimientos(); 
+      fetchSentimientos();
       setEditingInteraction(null);
       toast({ title: 'Success', description: 'Sentimiento updated.' });
     } catch (err) {
@@ -180,12 +180,11 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, delete: true }));
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/deactivate/${id}`, { // Updated URL and method
+      const response = await fetch(`${API_BASE_URL}/deactivate/${id}`, {
         method: 'PUT',
       });
-      // For PUT /deactivate, Spring Boot often returns 204 No Content on success
-      if (response.status === 204 || response.ok) {
-        fetchSentimientos(); 
+      if (response.status === 204 || response.ok) { // Spring Boot often returns 204 No Content on successful PUT/DELETE for void returns
+        fetchSentimientos();
         toast({ title: 'Success', description: 'Sentimiento marked as deactivated.' });
       } else {
         const errorText = await response.text();
@@ -207,13 +206,13 @@ export default function SentimentCrudPage() {
     try {
       const response = await fetch(`${API_BASE_URL}/restore/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' }, // Ensure content type if backend expects it, even for no body
       });
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      const data = await response.json(); // Assuming restore returns the restored item
+      // const data = await response.json(); // Assuming restore returns the restored item, if not, response.ok is enough
       fetchSentimientos();
       toast({ title: 'Success', description: 'Sentimiento restored.' });
     } catch (err) {
@@ -268,7 +267,7 @@ export default function SentimentCrudPage() {
           </CardHeader>
           <CardContent>
             <div className="flex gap-2 mb-4">
-              <Input 
+              <Input
                 placeholder="Enter Interaction ID"
                 value={interactionToSearch}
                 onChange={(e) => setInteractionToSearch(e.target.value)}
@@ -346,14 +345,14 @@ export default function SentimentCrudPage() {
                             </Dialog>
                           )}
                           {s.isDeleted ? (
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
+                            <Button
+                              variant="outline"
+                              size="icon"
                               onClick={() => s.id && handleRestoreSentimiento(s.id)}
                               disabled={isLoading.restore || isLoading.delete || isLoading.update}
                               title="Restore"
                             >
-                              {isLoading.restore && !(isLoading.delete || isLoading.update) ? <Loader2 className="animate-spin h-4 w-4" /> : <Undo2 className="h-4 w-4" />}
+                              {isLoading.restore ? <Loader2 className="animate-spin h-4 w-4" /> : <Undo2 className="h-4 w-4" />}
                             </Button>
                           ) : (
                             <Dialog>
@@ -374,20 +373,20 @@ export default function SentimentCrudPage() {
                                   <DialogClose asChild>
                                     <Button variant="outline">Cancel</Button>
                                   </DialogClose>
-                                  <Button
-                                    variant="destructive"
-                                    onClick={() => {
-                                        if(s.id) {
-                                          handleDeactivateSentimiento(s.id).then(() => {
-                                            // Optional: close dialog if needed
-                                          });
-                                        }
-                                    }}
-                                    disabled={isLoading.delete}
-                                  >
-                                    {isLoading.delete && <Loader2 className="animate-spin mr-2" />}
-                                    Deactivate
-                                  </Button>
+                                  <DialogClose asChild>
+                                    <Button
+                                      variant="destructive"
+                                      onClick={() => {
+                                          if(s.id) {
+                                            handleDeactivateSentimiento(s.id);
+                                          }
+                                      }}
+                                      disabled={isLoading.delete}
+                                    >
+                                      {isLoading.delete && <Loader2 className="animate-spin mr-2" />}
+                                      Deactivate
+                                    </Button>
+                                  </DialogClose>
                                 </DialogFooter>
                               </DialogContent>
                             </Dialog>
@@ -435,8 +434,3 @@ export default function SentimentCrudPage() {
     </div>
   );
 }
-    
-
-  
-
-    
