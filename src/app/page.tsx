@@ -1,151 +1,118 @@
+
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { FileTree, type TreeNodeData } from '@/components/FileTree';
-import { CodeEditor } from '@/components/CodeEditor';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Wand2, Download, Github } from 'lucide-react';
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
-import { Card, CardContent } from '@/components/ui/card';
+import { LogIn, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
 
-const FOLDER_STRUCTURE_DESCRIPTION = `Create a basic Angular project structure with placeholder content.
-The main application code resides in /src/app.
-/src/app should contain:
-- core: for services (AuthService in auth.service.ts), interceptors (AuthInterceptor in auth.interceptor.ts), guards (AuthGuard in auth.guard.ts), and interfaces (User in user.model.ts).
-- feature: with subdirectories for modules like 'users', 'products', and 'orders'. Each feature (e.g., users) should have basic placeholder files for a component (e.g., users.component.ts, users.component.html), service (e.g., users.service.ts), and module (e.g., users.module.ts).
-- layout: for layout components, e.g., an admin layout (admin.component.ts, admin.component.html).
-- shared: for reusable components (SpinnerComponent in spinner.component.ts/html, AlertComponent in alert.component.ts/html), directives (HighlightDirective in highlight.directive.ts), and utils (helpers.ts, constants.ts).
-Include root files in /src: main.ts, index.html, styles.css, app.component.ts, app.component.html, app.module.ts.
-Provide simple, functional placeholder content for each file, clearly indicating its purpose and type (e.g., service, component, HTML template, module). For .ts files, include basic imports and class/interface definitions. For .html files, include a simple heading related to the component.
-`;
+// Hardcoded credentials
+const VALID_USERNAME = 'admin';
+const VALID_PASSWORD = 'password';
 
-export default function CodeStructurerPage() {
-  const [projectFiles, setProjectFiles] = useState<Record<string, string> | null>(null);
-  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
-  const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null);
+export default function LoginPage() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
   const { toast } = useToast();
 
-  const handleFileSelect = (path: string, content: string) => {
-    setSelectedFilePath(path);
-    setSelectedFileContent(content);
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    // Simulate API call
+    setTimeout(() => {
+      if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+        toast({
+          title: 'Login Successful',
+          description: 'Redirecting to sentiment analysis page...',
+        });
+        router.push('/sentiment');
+      } else {
+        setError('Invalid username or password. Please try again.');
+        toast({
+          title: 'Login Failed',
+          description: 'Invalid username or password.',
+          variant: 'destructive',
+        });
+      }
+      setIsLoading(false);
+    }, 1000);
   };
-
-  const handleCodeChange = (path: string, newContent: string) => {
-    setSelectedFileContent(newContent);
-    setProjectFiles((prevFiles) => {
-      if (!prevFiles) return null;
-      return {
-        ...prevFiles,
-        [path]: newContent,
-      };
-    });
-  };
-
-  const handleDownloadProject = async () => {
-    if (!projectFiles || Object.keys(projectFiles).length === 0) {
-      toast({
-        title: 'No project to download',
-        description: 'Please generate a project first.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const zip = new JSZip();
-    for (const filePath in projectFiles) {
-      zip.file(filePath, projectFiles[filePath]);
-    }
-
-    try {
-      const content = await zip.generateAsync({ type: 'blob' });
-      saveAs(content, 'angular-project.zip');
-      toast({
-        title: 'Download Started',
-        description: 'Your Angular project is being downloaded.',
-      });
-    } catch (error) {
-      console.error('Error creating ZIP file:', error);
-      toast({
-        title: 'Error Downloading',
-        description: 'Could not create ZIP file for download.',
-        variant: 'destructive',
-      });
-    }
-  };
-  
-  const BrandIcon = () => (
-    <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2">
-      <rect width="100" height="100" rx="12" fill="hsl(var(--primary))"/>
-      <path d="M30 70L30 30L45 30C52.732 30 59 36.268 59 44L59 44C59 51.732 52.732 58 45 58L35 58" stroke="hsl(var(--primary-foreground))" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M50 70L70 50L50 30" stroke="hsl(var(--primary-foreground))" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="p-3 border-b flex items-center justify-between shadow-sm sticky top-0 bg-background z-10">
-        <div className="flex items-center">
-          <BrandIcon />
-          <h1 className="text-xl font-headline font-semibold">Code Structurer</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button 
-            onClick={handleDownloadProject} 
-            disabled={!projectFiles || isLoading}
-            variant="default"
-            size="sm"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Download ZIP
-          </Button>
-        </div>
-      </header>
-
-      <div className="flex flex-1 overflow-hidden">
-        <aside 
-          className="w-1/3 lg:w-1/4 border-r bg-card overflow-y-auto"
-          style={{'--scrollbar-thumb': 'hsl(var(--muted))', '--scrollbar-track': 'hsl(var(--card))'} as CSSProperties }
-        >
-          <FileTree 
-            projectFiles={projectFiles} 
-            onFileSelect={handleFileSelect}
-            selectedFilePath={selectedFilePath}
-          />
-        </aside>
-        
-        <main className="flex-1 p-4 bg-background overflow-y-auto">
-          {!projectFiles && !isLoading && (
-             <Card className="h-full flex flex-col items-center justify-center border-dashed border-2">
-              <CardContent className="text-center p-8">
-                <Image src="https://placehold.co/300x200.png" alt="Placeholder illustration" width={300} height={200} className="mb-6 rounded-lg shadow-md" data-ai-hint="abstract code" />
-                <h2 className="text-2xl font-headline mb-2">Welcome to Code Structurer</h2>
-                <p className="text-muted-foreground mb-6">
-                  Generate a complete Angular project structure with a single click. <br />
-                  View, edit, and download your new project's skeleton.</p>
-              </CardContent>
-            </Card>
-          )}
-          {isLoading && (
-            <div className="h-full flex flex-col items-center justify-center">
-              <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
-              <p className="text-lg text-muted-foreground">Generating project structure...</p>
-              <p className="text-sm text-muted-foreground">This might take a moment.</p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+      <Card className="w-full max-w-md shadow-2xl">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4">
+            <Image src="https://placehold.co/80x80.png" alt="App Logo" width={80} height={80} className="rounded-full" data-ai-hint="abstract logo" />
+          </div>
+          <CardTitle className="text-3xl font-headline">Welcome Back!</CardTitle>
+          <CardDescription>Please enter your credentials to access the sentiment analysis tool.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="e.g., admin"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={isLoading}
+                className="text-base"
+              />
             </div>
-          )}
-          {projectFiles && !isLoading && (
-            <CodeEditor
-              filePath={selectedFilePath}
-              content={selectedFileContent}
-              onCodeChange={handleCodeChange}
-            />
-          )}
-        </main>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="e.g., password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                className="text-base"
+              />
+            </div>
+            {error && (
+              <div className="flex items-center p-3 text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-md">
+                <AlertCircle className="w-5 h-5 mr-2 shrink-0" />
+                <p>{error}</p>
+              </div>
+            )}
+            <Button type="submit" className="w-full text-lg py-6" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Signing In...
+                </>
+              ) : (
+                <>
+                  <LogIn className="mr-2 h-5 w-5" />
+                  Sign In
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="text-center text-sm text-muted-foreground flex-col space-y-1 pt-6">
+            <p>Hint: Try username <code className="bg-muted px-1 rounded-sm">admin</code> and password <code className="bg-muted px-1 rounded-sm">password</code>.</p>
+            <p>&copy; {new Date().getFullYear()} Sentiment Analyzer App. All rights reserved.</p>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
