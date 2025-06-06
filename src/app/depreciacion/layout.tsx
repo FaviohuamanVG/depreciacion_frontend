@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { Building, TrendingDown, DollarSign, CalendarDays, LogOut, LayoutDashboard, Archive, FileText } from 'lucide-react';
+import { Building, TrendingDown, DollarSign, CalendarDays, LogOut, LayoutDashboard, Archive, FileText, HelpCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 export default function DepreciacionLayout({ children }: { children: ReactNode }) {
@@ -45,6 +45,12 @@ export default function DepreciacionLayout({ children }: { children: ReactNode }
       icon: <FileText />,
       label: 'Reportes',
       tooltip: 'Reportes',
+    },
+    {
+      path: '/depreciacion/ayuda',
+      icon: <HelpCircle />,
+      label: 'Ayuda',
+      tooltip: 'Guía de Usuario',
     },
   ];
 
