@@ -8,12 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn, AlertCircle } from 'lucide-react';
+import { LogIn, AlertCircle, Building, BarChartBig } from 'lucide-react';
 import Image from 'next/image';
 
 // Hardcoded credentials
-const VALID_USERNAME = 'admin';
-const VALID_PASSWORD = 'password';
+const VALID_CREDENTIALS = [
+  { username: 'admin', password: 'password', redirectPath: '/sentiment', appName: 'Sentiment Analysis' },
+  { username: 'polleria', password: 'activos', redirectPath: '/depreciacion', appName: 'Asset Depreciation (Pollería)' },
+];
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -28,14 +30,17 @@ export default function LoginPage() {
     setError(null);
     setIsLoading(true);
 
-    // Simulate API call
     setTimeout(() => {
-      if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+      const matchedUser = VALID_CREDENTIALS.find(
+        (cred) => cred.username === username && cred.password === password
+      );
+
+      if (matchedUser) {
         toast({
           title: 'Login Successful',
-          description: 'Redirecting to sentiment analysis page...',
+          description: `Redirecting to ${matchedUser.appName}...`,
         });
-        router.push('/sentiment');
+        router.push(matchedUser.redirectPath);
       } else {
         setError('Invalid username or password. Please try again.');
         toast({
@@ -53,10 +58,10 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
-            <Image src="https://placehold.co/80x80.png" alt="App Logo" width={80} height={80} className="rounded-full" data-ai-hint="abstract logo" />
+            <Image src="https://placehold.co/80x80.png" alt="App Logo" width={80} height={80} className="rounded-full" data-ai-hint="modern logo" />
           </div>
-          <CardTitle className="text-3xl font-headline">Welcome Back!</CardTitle>
-          <CardDescription>Please enter your credentials to access the sentiment analysis tool.</CardDescription>
+          <CardTitle className="text-3xl font-headline">Welcome!</CardTitle>
+          <CardDescription>Please enter your credentials to access the application.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -65,7 +70,7 @@ export default function LoginPage() {
               <Input
                 id="username"
                 type="text"
-                placeholder="e.g., admin"
+                placeholder="e.g., admin or polleria"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={isLoading}
@@ -77,7 +82,7 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="e.g., password"
+                placeholder="e.g., password or activos"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
@@ -108,9 +113,13 @@ export default function LoginPage() {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="text-center text-sm text-muted-foreground flex-col space-y-1 pt-6">
-            <p>Hint: Try username <code className="bg-muted px-1 rounded-sm">admin</code> and password <code className="bg-muted px-1 rounded-sm">password</code>.</p>
-            <p>&copy; {new Date().getFullYear()} Sentiment Analyzer App. All rights reserved.</p>
+        <CardFooter className="text-center text-sm text-muted-foreground flex-col space-y-2 pt-6">
+            <div className="space-y-1">
+              <p className="font-semibold">Hints:</p>
+              <p><BarChartBig className="inline-block mr-1 h-4 w-4 text-primary" />Sentiment App: <code className="bg-muted px-1 rounded-sm">admin</code> / <code className="bg-muted px-1 rounded-sm">password</code></p>
+              <p><Building className="inline-block mr-1 h-4 w-4 text-primary" />Depreciation App: <code className="bg-muted px-1 rounded-sm">polleria</code> / <code className="bg-muted px-1 rounded-sm">activos</code></p>
+            </div>
+            <p className="mt-2">&copy; {new Date().getFullYear()} Multi-App Suite. All rights reserved.</p>
         </CardFooter>
       </Card>
     </div>
