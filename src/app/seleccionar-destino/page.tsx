@@ -83,19 +83,17 @@ export default function SeleccionarDestinoPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
-          {/* Botón de Depreciación condicional para rol 'admin' */}
-          {user.rol === 'admin' && (
-            <Button 
-              onClick={() => router.push('/depreciacion')} 
-              className="w-full text-lg py-6 bg-primary hover:bg-primary/90 text-primary-foreground"
-              variant="default"
-              size="lg"
-            >
-              <Building className="mr-3 h-6 w-6" />
-              Gestión de Depreciación
-              <ArrowRight className="ml-auto h-5 w-5" />
-            </Button>
-          )}
+          {/* Botón de Depreciación siempre visible para usuarios logueados via backend */}
+          <Button 
+            onClick={() => router.push('/depreciacion')} 
+            className="w-full text-lg py-6 bg-primary hover:bg-primary/90 text-primary-foreground"
+            variant="default"
+            size="lg"
+          >
+            <Building className="mr-3 h-6 w-6" />
+            Gestión de Depreciación
+            <ArrowRight className="ml-auto h-5 w-5" />
+          </Button>
           
            {/* Botón de Pedido de Pollo siempre visible */}
            <Button 
