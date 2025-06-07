@@ -4,8 +4,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'App Suite - Login',
-  description: 'Login to access various applications.',
+  title: 'App Suite',
+  description: 'Access various applications after login.',
 };
 
 export default function RootLayout({
