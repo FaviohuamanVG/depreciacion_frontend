@@ -11,46 +11,77 @@ import { useToast } from '@/hooks/use-toast';
 import { LogIn, AlertCircle, Building, BarChartBig } from 'lucide-react';
 import Image from 'next/image';
 
-// Hardcoded credentials
-const VALID_CREDENTIALS = [
-  { username: 'admin', password: 'password', redirectPath: '/sentiment', appName: 'Sentiment Analysis' },
-  { username: 'polleria', password: 'activos', redirectPath: '/depreciacion', appName: 'Asset Depreciation (Pollería)' },
-];
+// API base URL for user authentication
+const API_BASE_URL_USUARIOS = 'https://8080-firebase-cognitiveapisgit-1748893329986.cluster-4xpux6pqdzhrktbhjf2cumyqtg.cloudworkstations.dev/api/usuarios';
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(''); // This will be used as 'correo' for the backend
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
 
-    setTimeout(() => {
-      const matchedUser = VALID_CREDENTIALS.find(
-        (cred) => cred.username === username && cred.password === password
-      );
+    // Client-side check for Sentiment Analysis App
+    if (username === 'admin' && password === 'password') {
+      toast({
+        title: 'Login Successful',
+        description: `Redirecting to Sentiment Analysis...`,
+      });
+      router.push('/sentiment');
+      setIsLoading(false);
+      return;
+    }
 
-      if (matchedUser) {
+    // Attempt login via backend API for Depreciation App
+    try {
+      const response = await fetch(`${API_BASE_URL_USUARIOS}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ correo: username, contrasena: password }),
+      });
+
+      if (response.ok) {
+        // const data = await response.json(); // Contains token and user info, can be used later
         toast({
           title: 'Login Successful',
-          description: `Redirecting to ${matchedUser.appName}...`,
+          description: `Redirecting to Asset Depreciation (Pollería)...`,
         });
-        router.push(matchedUser.redirectPath);
-      } else {
-        setError('Invalid username or password. Please try again.');
+        router.push('/depreciacion');
+      } else if (response.status === 401) {
+        setError('Invalid email or password for Depreciation App. Please try again.');
         toast({
           title: 'Login Failed',
-          description: 'Invalid username or password.',
+          description: 'Invalid email or password for Depreciation App.',
+          variant: 'destructive',
+        });
+      } else {
+        const errorText = await response.text();
+        setError(`Login failed: ${errorText || 'Unknown error'}`);
+        toast({
+          title: 'Login Failed',
+          description: `An error occurred: ${errorText || 'Unknown error'}`,
           variant: 'destructive',
         });
       }
+    } catch (err) {
+      console.error("Login API call failed:", err);
+      setError('Failed to connect to the login service. Please try again later.');
+      toast({
+        title: 'Login Error',
+        description: 'Could not connect to the login service.',
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -66,11 +97,11 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">Username / Email</Label>
               <Input
                 id="username"
                 type="text"
-                placeholder="e.g., admin or polleria"
+                placeholder="admin OR your_email@example.com"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={isLoading}
@@ -82,7 +113,7 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="e.g., password or activos"
+                placeholder="password OR your_depreciation_password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
@@ -115,9 +146,9 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="text-center text-sm text-muted-foreground flex-col space-y-2 pt-6">
             <div className="space-y-1">
-              <p className="font-semibold">Hints:</p>
+              <p className="font-semibold">Login Details:</p>
               <p><BarChartBig className="inline-block mr-1 h-4 w-4 text-primary" />Sentiment App: <code className="bg-muted px-1 rounded-sm">admin</code> / <code className="bg-muted px-1 rounded-sm">password</code></p>
-              <p><Building className="inline-block mr-1 h-4 w-4 text-primary" />Depreciation App: <code className="bg-muted px-1 rounded-sm">polleria</code> / <code className="bg-muted px-1 rounded-sm">activos</code></p>
+              <p><Building className="inline-block mr-1 h-4 w-4 text-primary" />Depreciation App: Use your registered email and password (connects to backend API).</p>
             </div>
             <p className="mt-2">&copy; {new Date().getFullYear()} Multi-App Suite. All rights reserved.</p>
         </CardFooter>
