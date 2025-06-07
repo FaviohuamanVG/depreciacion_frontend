@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
+import { useRouter } from 'next/navigation'; // Import useRouter
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageSquareText, Edit, Trash2, PlusCircle, AlertCircle, Search, Undo2 } from 'lucide-react';
+import { Loader2, MessageSquareText, Edit, Trash2, PlusCircle, AlertCircle, Search, Undo2, LogOut } from 'lucide-react'; // Import LogOut
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +23,7 @@ interface ApiInteraction {
   input: string;
   output?: string;
   sentiment?: string;
-  estadoapi?: string; 
+  estadoapi?: string;
   timestamp?: string;
   errorMessage?: string;
   positiveScore?: number;
@@ -45,12 +46,18 @@ export default function SentimentCrudPage() {
     create: false,
     read: true,
     update: false,
-    delete: false, 
+    delete: false,
     search: false,
     restore: false,
   });
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const router = useRouter(); // Initialize useRouter
+
+  // Handle sign out
+  const handleSignOut = () => {
+    router.push('/');
+  };
 
   // Fetch all sentimientos
   const fetchSentimientos = async () => {
@@ -87,7 +94,7 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, create: true }));
     setError(null);
     try {
-      const response = await fetch(API_BASE_URL, { 
+      const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newText),
@@ -96,7 +103,7 @@ export default function SentimentCrudPage() {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      fetchSentimientos(); 
+      fetchSentimientos();
       setNewText('');
       toast({ title: 'Success', description: 'Sentiment analyzed and saved.' });
     } catch (err) {
@@ -118,7 +125,7 @@ export default function SentimentCrudPage() {
     setSearchedInteraction(null);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/${interactionToSearch}`); 
+      const response = await fetch(`${API_BASE_URL}/${interactionToSearch}`);
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error('Interaction not found.');
@@ -156,7 +163,7 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, update: true }));
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/${editingInteraction.id}`, { 
+      const response = await fetch(`${API_BASE_URL}/${editingInteraction.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editText),
@@ -165,7 +172,7 @@ export default function SentimentCrudPage() {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      fetchSentimientos(); 
+      fetchSentimientos();
       setEditingInteraction(null);
       toast({ title: 'Success', description: 'Sentimiento updated.' });
     } catch (err) {
@@ -182,11 +189,11 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, delete: true }));
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/deactivate/${id}`, { 
+      const response = await fetch(`${API_BASE_URL}/deactivate/${id}`, {
         method: 'PUT',
       });
-      if (response.status === 204 || response.ok) { 
-        fetchSentimientos(); 
+      if (response.status === 204 || response.ok) {
+        fetchSentimientos();
         toast({ title: 'Success', description: 'Sentimiento marked as deactivated.' });
       } else {
         const errorText = await response.text();
@@ -206,20 +213,16 @@ export default function SentimentCrudPage() {
     setIsLoading(prev => ({ ...prev, restore: true }));
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/restore/${id}`, { 
+      const response = await fetch(`${API_BASE_URL}/restore/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' }, 
+        headers: { 'Content-Type': 'application/json' },
       });
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
       }
-      fetchSentimientos(); 
+      fetchSentimientos();
       toast({ title: 'Success', description: 'Sentimiento restored.' });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to restore sentimiento.';
-      setError(errorMessage);
-      toast({ title: 'Restore Failed', description: errorMessage, variant: 'destructive' });
     } finally {
       setIsLoading(prev => ({ ...prev, restore: false }));
     }
@@ -228,11 +231,17 @@ export default function SentimentCrudPage() {
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="p-4 border-b shadow-sm sticky top-0 bg-card z-10">
-        <h1 className="text-xl font-semibold">Sentiment Text CRUD</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage text entries and their sentiment analysis. Fetches from <code className="bg-muted px-1 rounded-sm">{`${API_BASE_URL}/all`}</code>
-        </p>
+      <header className="flex justify-between items-center p-4 border-b shadow-sm sticky top-0 bg-card z-10">
+        <div>
+          <h1 className="text-xl font-semibold">Sentiment Text CRUD</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage text entries and their sentiment analysis. Fetches from <code className="bg-muted px-1 rounded-sm">{`${API_BASE_URL}/all`}</code>
+          </p>
+        </div>
+        <Button variant="outline" onClick={handleSignOut}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
+        </Button>
       </header>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 overflow-y-auto">
