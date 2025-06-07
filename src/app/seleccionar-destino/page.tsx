@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Building, ShoppingBasket, LogOut, ArrowRight } from 'lucide-react';
+import { Building, ShoppingBasket, LogOut, ArrowRight, BarChartBig } from 'lucide-react';
 import Image from 'next/image';
 
 interface User {
@@ -83,22 +83,23 @@ export default function SeleccionarDestinoPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
-          {user.rol === 'admin' && (
-            <Button 
-              onClick={() => router.push('/depreciacion')} 
-              className="w-full text-lg py-6 bg-primary hover:bg-primary/90 text-primary-foreground"
-              variant="default"
-              size="lg"
-            >
-              <Building className="mr-3 h-6 w-6" />
-              Gestión de Depreciación (Admin)
-              <ArrowRight className="ml-auto h-5 w-5" />
-            </Button>
-          )}
+          {/* Botón de Depreciación siempre visible */}
+          <Button 
+            onClick={() => router.push('/depreciacion')} 
+            className="w-full text-lg py-6 bg-primary hover:bg-primary/90 text-primary-foreground"
+            variant="default"
+            size="lg"
+          >
+            <Building className="mr-3 h-6 w-6" />
+            Gestión de Depreciación
+            <ArrowRight className="ml-auto h-5 w-5" />
+          </Button>
+          
+           {/* Botón de Pedido de Pollo siempre visible */}
            <Button 
             onClick={() => router.push('/pedido-pollo')} 
             className="w-full text-lg py-6 bg-orange-500 hover:bg-orange-600 text-white"
-            variant="default" // Explicitly setting, though it's default. Using custom colors.
+            variant="default" 
             size="lg"
           >
             <ShoppingBasket className="mr-3 h-6 w-6" />
@@ -106,6 +107,7 @@ export default function SeleccionarDestinoPage() {
             <ArrowRight className="ml-auto h-5 w-5" />
           </Button>
 
+           {/* Botón de Análisis de Sentimiento condicional */}
            {user.rol === 'admin_sentiment' && (
              <Button 
               onClick={() => router.push('/sentiment')} 
@@ -135,4 +137,3 @@ export default function SeleccionarDestinoPage() {
     </div>
   );
 }
-
