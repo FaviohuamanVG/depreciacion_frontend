@@ -11,8 +11,9 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Sparkles, Trash2, Plus, Minus, CreditCard, Smartphone, Banknote, X, DollarSign, PackageCheck } from 'lucide-react';
+import { ShoppingCart, Sparkles, Trash2, Plus, Minus, CreditCard, Smartphone, Banknote, X, DollarSign, PackageCheck, LogOut } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface ChickenProduct {
   id: string;
@@ -94,6 +95,7 @@ export default function PedidoPolloPage() {
   const [paymentMethod, setPaymentMethod] = useState<'yape' | 'card' | 'cash'>('yape');
   const [payInDollars, setPayInDollars] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleAddToCart = (product: ChickenProduct) => {
     setCartItems((prevItems) => {
@@ -171,6 +173,13 @@ export default function PedidoPolloPage() {
     setCartItems([]);
     setIsCheckoutOpen(false);
     setPayInDollars(false); // Reset currency preference
+  };
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('loggedInUser'); // Good practice even if not directly used by this page
+    }
+    router.push('/');
   };
 
 
@@ -394,9 +403,15 @@ export default function PedidoPolloPage() {
       <footer className="text-center mt-16 py-8 border-t border-orange-200">
         <p className="text-gray-600">&copy; {new Date().getFullYear()} Pollería "El Brasero Ardiente". Todos los derechos reservados.</p>
         <p className="text-sm text-gray-500 mt-1">Av. Siempre Viva 123, Springfield - Pedidos al (01) 555-POLLO</p>
+        <Button variant="ghost" onClick={handleLogout} className="mt-4 text-orange-600 hover:text-orange-800">
+          <LogOut className="mr-2 h-4 w-4" />
+          Cerrar Sesión
+        </Button>
       </footer>
     </div>
   );
 }
+
+    
 
     
