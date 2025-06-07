@@ -3,12 +3,13 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link'; // Import Link
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn, AlertCircle, Building, BarChartBig } from 'lucide-react';
+import { LogIn, AlertCircle, Building, BarChartBig, UserPlus } from 'lucide-react';
 import Image from 'next/image';
 
 // API base URL for user authentication
@@ -143,6 +144,11 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
+          <div className="mt-6 text-center">
+            <Link href="/register" className="text-sm text-primary hover:underline">
+                Don&apos;t have an account? Register here
+            </Link>
+          </div>
         </CardContent>
         <CardFooter className="text-center text-sm text-muted-foreground flex-col space-y-2 pt-6">
             <div className="space-y-1">
