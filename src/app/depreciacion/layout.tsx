@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { Building, TrendingDown, DollarSign, CalendarDays, LogOut, LayoutDashboard, Archive, FileText, HelpCircle } from 'lucide-react';
+import { Building, TrendingDown, DollarSign, CalendarDays, LogOut, LayoutDashboard, Archive, FileText, HelpCircle, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 export default function DepreciacionLayout({ children }: { children: ReactNode }) {
@@ -39,6 +39,12 @@ export default function DepreciacionLayout({ children }: { children: ReactNode }
       icon: <Archive />,
       label: 'Activos',
       tooltip: 'Gestión de Activos',
+    },
+    {
+      path: '/depreciacion/usuarios',
+      icon: <Users />,
+      label: 'Gestión Usuarios',
+      tooltip: 'Administrar Usuarios',
     },
     {
       path: '/depreciacion/reportes',
@@ -79,7 +85,7 @@ export default function DepreciacionLayout({ children }: { children: ReactNode }
                 <SidebarMenuButton
                   onClick={() => router.push(item.path)}
                   tooltip={item.tooltip}
-                  isActive={pathname === item.path || (item.path === '/depreciacion' && pathname === '/depreciacion/')}
+                  isActive={pathname === item.path || (pathname.startsWith(item.path) && item.path !== '/depreciacion') || (item.path === '/depreciacion' && (pathname === '/depreciacion' || pathname === '/depreciacion/'))}
                 >
                   {item.icon}
                   <span>{item.label}</span>
