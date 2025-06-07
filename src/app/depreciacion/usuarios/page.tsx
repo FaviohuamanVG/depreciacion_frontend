@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Users, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-const API_BASE_URL_USUARIOS = 'https://8080-firebase-cognitiveapisgit-1748893329986.cluster-4xpux6pqdzhrktbhjf2cumyqtg.cloudworkstations.dev/api/usuarios';
+const API_BASE_URL_USUARIOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.github.dev/api/usuarios';
 
 export default function GestionUsuariosPage() {
   const router = useRouter();

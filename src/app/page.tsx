@@ -13,7 +13,7 @@ import { LogIn, AlertCircle, Building, BarChartBig, UserPlus } from 'lucide-reac
 import Image from 'next/image';
 
 // API base URL for user authentication
-const API_BASE_URL_USUARIOS = 'https://8080-firebase-cognitiveapisgit-1748893329986.cluster-4xpux6pqdzhrktbhjf2cumyqtg.cloudworkstations.dev/api/usuarios';
+const API_BASE_URL_USUARIOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.github.dev/api/usuarios';
 
 export default function LoginPage() {
   const [username, setUsername] = useState(''); // This will be used as 'correo' for the backend
