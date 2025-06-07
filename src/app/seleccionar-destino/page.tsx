@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Building, ShoppingBasket, LogOut, ArrowRight, BarChartBig } from 'lucide-react';
+import { Building, ShoppingBasket, LogOut, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 
 interface User {
@@ -53,7 +53,7 @@ export default function SeleccionarDestinoPage() {
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <p className="mt-4 text-muted-foreground">Loading user data...</p>
+        <p className="mt-4 text-muted-foreground">Cargando datos del usuario...</p>
       </div>
     );
   }
@@ -63,7 +63,7 @@ export default function SeleccionarDestinoPage() {
     // but it's a fallback.
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
-             <p className="text-destructive">User data not found. Redirecting to login...</p>
+             <p className="text-destructive">Datos del usuario no encontrados. Redirigiendo al login...</p>
         </div>
     );
   }
@@ -83,17 +83,19 @@ export default function SeleccionarDestinoPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
-          {/* Botón de Depreciación siempre visible */}
-          <Button 
-            onClick={() => router.push('/depreciacion')} 
-            className="w-full text-lg py-6 bg-primary hover:bg-primary/90 text-primary-foreground"
-            variant="default"
-            size="lg"
-          >
-            <Building className="mr-3 h-6 w-6" />
-            Gestión de Depreciación
-            <ArrowRight className="ml-auto h-5 w-5" />
-          </Button>
+          {/* Botón de Depreciación condicional para rol 'admin' */}
+          {user.rol === 'admin' && (
+            <Button 
+              onClick={() => router.push('/depreciacion')} 
+              className="w-full text-lg py-6 bg-primary hover:bg-primary/90 text-primary-foreground"
+              variant="default"
+              size="lg"
+            >
+              <Building className="mr-3 h-6 w-6" />
+              Gestión de Depreciación
+              <ArrowRight className="ml-auto h-5 w-5" />
+            </Button>
+          )}
           
            {/* Botón de Pedido de Pollo siempre visible */}
            <Button 
@@ -106,20 +108,6 @@ export default function SeleccionarDestinoPage() {
             Realizar Pedido de Pollo
             <ArrowRight className="ml-auto h-5 w-5" />
           </Button>
-
-           {/* Botón de Análisis de Sentimiento condicional */}
-           {user.rol === 'admin_sentiment' && (
-             <Button 
-              onClick={() => router.push('/sentiment')} 
-              className="w-full text-lg py-6 bg-indigo-600 hover:bg-indigo-700 text-white"
-              variant="default"
-              size="lg"
-            >
-              <BarChartBig className="mr-3 h-6 w-6" />
-              Análisis de Sentimiento
-              <ArrowRight className="ml-auto h-5 w-5" />
-            </Button>
-           )}
 
         </CardContent>
         <CardFooter className="p-6 border-t bg-gray-50 rounded-b-lg">
