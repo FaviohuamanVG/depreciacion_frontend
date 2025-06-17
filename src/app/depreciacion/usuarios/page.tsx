@@ -28,36 +28,40 @@ export default function GestionUsuariosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchUsuarios = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(API_BASE_URL_USUARIOS);
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: `Error ${response.status}: ${response.statusText}` }));
-          throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
-        }
-        const data: Usuario[] = await response.json();
-        setUsuarios(data);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'No se pudo obtener la lista de usuarios.';
-        setError(message);
-        toast({
-          title: 'Error al Cargar Usuarios',
-          description: message,
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
+  const fetchUsuarios = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(API_BASE_URL_USUARIOS);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `Error ${response.status}: ${response.statusText}` }));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
-    };
+      const data: Usuario[] = await response.json();
+      setUsuarios(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo obtener la lista de usuarios.';
+      setError(message);
+      toast({
+        title: 'Error al Cargar Usuarios',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchUsuarios();
-  }, [toast]);
+  }, []);
 
   const handleNavigateToCreateUser = () => {
     router.push('/depreciacion/usuarios/crear');
+  };
+
+  const handleNavigateToEditUser = (userId: string) => {
+    router.push(`/depreciacion/usuarios/editar/${userId}`);
   };
 
   const formatDateTime = (dateTimeString: string | null) => {
@@ -73,7 +77,7 @@ export default function GestionUsuariosPage() {
         hour12: true
       });
     } catch (e) {
-      return dateTimeString; // Devuelve el string original si no se puede parsear
+      return dateTimeString; 
     }
   };
 
@@ -111,7 +115,7 @@ export default function GestionUsuariosPage() {
                 <AlertCircle className="h-10 w-10 text-red-500 mb-3" />
                 <p className="text-red-700 font-semibold">Error al cargar usuarios</p>
                 <p className="text-red-600 text-sm">{error}</p>
-                <Button variant="outline" onClick={() => window.location.reload()} className="mt-4 text-amber-700 border-amber-300 hover:bg-amber-50">
+                <Button variant="outline" onClick={fetchUsuarios} className="mt-4 text-amber-700 border-amber-300 hover:bg-amber-50">
                   Reintentar
                 </Button>
               </div>
@@ -143,11 +147,21 @@ export default function GestionUsuariosPage() {
                         <TableCell className="text-muted-foreground">{usuario.rol || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{formatDateTime(usuario.ultimoAcceso)}</TableCell>
                         <TableCell className="text-right space-x-2">
-                          <Button variant="outline" size="icon" className="text-amber-600 border-amber-300 hover:bg-amber-100 hover:text-amber-700" onClick={() => toast({title: 'Próximamente', description: 'Funcionalidad de editar estará disponible pronto.'})}>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="text-amber-600 border-amber-300 hover:bg-amber-100 hover:text-amber-700" 
+                            onClick={() => handleNavigateToEditUser(usuario.id)}
+                          >
                             <Edit2 className="h-4 w-4" />
                             <span className="sr-only">Editar</span>
                           </Button>
-                          <Button variant="outline" size="icon" className="text-red-500 border-red-300 hover:bg-red-100 hover:text-red-600" onClick={() => toast({title: 'Próximamente', description: 'Funcionalidad de eliminar estará disponible pronto.'})}>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="text-red-500 border-red-300 hover:bg-red-100 hover:text-red-600" 
+                            onClick={() => toast({title: 'Próximamente', description: 'Funcionalidad de eliminar estará disponible pronto.'})}
+                          >
                             <Trash2 className="h-4 w-4" />
                             <span className="sr-only">Eliminar</span>
                           </Button>
