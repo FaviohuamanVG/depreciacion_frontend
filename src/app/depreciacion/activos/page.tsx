@@ -98,7 +98,19 @@ export default function ActivosPage() {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     try {
-      const date = new Date(dateString + 'T00:00:00'); // Asegurar que se interprete como fecha local
+      // Asegurar que se interprete como fecha local añadiendo la hora si solo viene YYYY-MM-DD
+      // Esto previene que se mueva un día por diferencias de zona horaria UTC
+      const dateParts = dateString.split('-');
+      if (dateParts.length === 3 && dateString.length === 10) {
+         const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+         return date.toLocaleDateString('es-PE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+         });
+      }
+      // Si ya tiene hora o un formato diferente, intentar parsearlo directamente
+      const date = new Date(dateString);
       return date.toLocaleDateString('es-PE', {
         day: '2-digit',
         month: '2-digit',
@@ -172,7 +184,7 @@ export default function ActivosPage() {
                       <TableRow key={activo.id} className="hover:bg-amber-50/50">
                         <TableCell className="text-muted-foreground font-medium">{activo.nombre}</TableCell>
                         <TableCell className="text-muted-foreground">{formatDate(activo.fechaAdquisicion)}</TableCell>
-                        <TableCell className="text-muted-foreground text-right">{activo.valorAdquisicion.toFixed(2)}</TableCell>
+                        <TableCell className="text-muted-foreground text-right">{typeof activo.valorAdquisicion === 'number' ? activo.valorAdquisicion.toFixed(2) : 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground text-center">{activo.vidaUtilAnios}</TableCell>
                         <TableCell className="text-muted-foreground">{activo.categoria || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{activo.estado || 'N/A'}</TableCell>
@@ -232,3 +244,6 @@ export default function ActivosPage() {
     </>
   );
 }
+
+
+    
