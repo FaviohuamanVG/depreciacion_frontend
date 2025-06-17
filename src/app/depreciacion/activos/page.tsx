@@ -182,10 +182,10 @@ export default function ActivosPage() {
                   <TableBody>
                     {activos.map((activo) => (
                       <TableRow key={activo.id} className="hover:bg-amber-50/50">
-                        <TableCell className="text-muted-foreground font-medium">{activo.nombre}</TableCell>
+                        <TableCell className="text-muted-foreground font-medium">{activo.nombre || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{formatDate(activo.fechaAdquisicion)}</TableCell>
                         <TableCell className="text-muted-foreground text-right">{typeof activo.valorAdquisicion === 'number' ? activo.valorAdquisicion.toFixed(2) : 'N/A'}</TableCell>
-                        <TableCell className="text-muted-foreground text-center">{activo.vidaUtilAnios}</TableCell>
+                        <TableCell className="text-muted-foreground text-center">{activo.vidaUtilAnios > 0 ? activo.vidaUtilAnios : 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{activo.categoria || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{activo.estado || 'N/A'}</TableCell>
                         <TableCell className="text-right space-x-2">
@@ -215,7 +215,7 @@ export default function ActivosPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>¿Confirmar Eliminación?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Esta acción no se puede deshacer. ¿Estás seguro de que quieres eliminar el activo "{activo.nombre}"?
+                                  Esta acción no se puede deshacer. ¿Estás seguro de que quieres eliminar el activo "{activo.nombre || 'este activo'}"?
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -244,6 +244,4 @@ export default function ActivosPage() {
     </>
   );
 }
-
-
     
