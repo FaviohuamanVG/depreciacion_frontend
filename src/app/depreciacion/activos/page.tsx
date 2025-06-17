@@ -14,13 +14,19 @@ const API_BASE_URL_ACTIVOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.gi
 
 interface Activo {
   id: string;
-  nombre: string;
-  descripcion?: string;
-  fechaAdquisicion: string; // YYYY-MM-DD
-  valorAdquisicion: number;
+  descripcion: string;
+  tipo?: string;
+  marca?: string;
+  modelo?: string;
+  zona?: string;
+  costoAdquisicion: number;
+  fechaCompra: string; // ISO Date string from backend, YYYY-MM-DD from form
+  categoriaId?: string;
   vidaUtilAnios: number;
-  categoria?: string;
-  estado?: string;
+  estado: 'ACTIVO' | 'INACTIVO' | 'EN_MANTENIMIENTO' | 'DADO_DE_BAJA';
+  valorResidual?: number;
+  metodoDepreciacion?: 'LINEA_RECTA' | 'SUMA_DIGITOS' | 'REDUCCION_SALDOS' | 'UNIDADES_PRODUCIDAS';
+  depreciacionAnual?: number;
 }
 
 export default function ActivosPage() {
@@ -73,7 +79,7 @@ export default function ActivosPage() {
       const response = await fetch(`${API_BASE_URL_ACTIVOS}/${activoId}`, {
         method: 'DELETE',
       });
-      if (response.ok || response.status === 204) {
+      if (response.ok || response.status === 204) { // 204 No Content is also a success for DELETE
         toast({
           title: 'Activo Eliminado',
           description: 'El activo ha sido eliminado exitosamente.',
@@ -95,13 +101,11 @@ export default function ActivosPage() {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'N/A';
     try {
-      // Asegurar que se interprete como fecha local añadiendo la hora si solo viene YYYY-MM-DD
-      // Esto previene que se mueva un día por diferencias de zona horaria UTC
-      const dateParts = dateString.split('-');
-      if (dateParts.length === 3 && dateString.length === 10) {
+      const dateParts = dateString.split('T')[0].split('-'); // Handle ISO string like "2023-10-26T00:00:00.000+00:00"
+      if (dateParts.length === 3) {
          const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
          return date.toLocaleDateString('es-PE', {
             day: '2-digit',
@@ -109,15 +113,14 @@ export default function ActivosPage() {
             year: 'numeric',
          });
       }
-      // Si ya tiene hora o un formato diferente, intentar parsearlo directamente
-      const date = new Date(dateString);
+      const date = new Date(dateString); // Fallback for other formats
       return date.toLocaleDateString('es-PE', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
       });
     } catch (e) {
-      return dateString; // Devuelve el string original si hay error
+      return dateString; 
     }
   };
 
@@ -127,7 +130,7 @@ export default function ActivosPage() {
         <h1 className="text-xl font-semibold text-amber-800">Gestión de Activos Fijos</h1>
       </div>
       <main className="flex flex-1 flex-col items-center p-4 sm:p-6 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-        <Card className="w-full max-w-6xl shadow-lg">
+        <Card className="w-full max-w-full shadow-lg">
           <CardHeader className="bg-amber-100 rounded-t-lg flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-2xl font-bold text-amber-700 flex items-center">
@@ -170,24 +173,30 @@ export default function ActivosPage() {
                 <Table className="min-w-full">
                   <TableHeader className="bg-amber-50">
                     <TableRow>
-                      <TableHead className="text-amber-700 font-semibold">Nombre</TableHead>
-                      <TableHead className="text-amber-700 font-semibold">Fecha Adquisición</TableHead>
-                      <TableHead className="text-amber-700 font-semibold text-right">Valor (S/)</TableHead>
+                      <TableHead className="text-amber-700 font-semibold">Descripción</TableHead>
+                      <TableHead className="text-amber-700 font-semibold">Tipo</TableHead>
+                      <TableHead className="text-amber-700 font-semibold">Marca</TableHead>
+                      <TableHead className="text-amber-700 font-semibold">Fecha Compra</TableHead>
+                      <TableHead className="text-amber-700 font-semibold text-right">Costo (S/)</TableHead>
                       <TableHead className="text-amber-700 font-semibold text-center">Vida Útil (Años)</TableHead>
-                      <TableHead className="text-amber-700 font-semibold">Categoría</TableHead>
                       <TableHead className="text-amber-700 font-semibold">Estado</TableHead>
+                      <TableHead className="text-amber-700 font-semibold">Método Deprec.</TableHead>
+                      <TableHead className="text-amber-700 font-semibold text-right">Deprec. Anual (S/)</TableHead>
                       <TableHead className="text-amber-700 font-semibold text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {activos.map((activo) => (
                       <TableRow key={activo.id} className="hover:bg-amber-50/50">
-                        <TableCell className="text-muted-foreground font-medium">{activo.nombre || 'N/A'}</TableCell>
-                        <TableCell className="text-muted-foreground">{formatDate(activo.fechaAdquisicion)}</TableCell>
-                        <TableCell className="text-muted-foreground text-right">{typeof activo.valorAdquisicion === 'number' ? activo.valorAdquisicion.toFixed(2) : 'N/A'}</TableCell>
+                        <TableCell className="text-muted-foreground font-medium max-w-xs truncate">{activo.descripcion || 'N/A'}</TableCell>
+                        <TableCell className="text-muted-foreground">{activo.tipo || 'N/A'}</TableCell>
+                        <TableCell className="text-muted-foreground">{activo.marca || 'N/A'}</TableCell>
+                        <TableCell className="text-muted-foreground">{formatDate(activo.fechaCompra)}</TableCell>
+                        <TableCell className="text-muted-foreground text-right">{typeof activo.costoAdquisicion === 'number' ? activo.costoAdquisicion.toFixed(2) : 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground text-center">{activo.vidaUtilAnios > 0 ? activo.vidaUtilAnios : 'N/A'}</TableCell>
-                        <TableCell className="text-muted-foreground">{activo.categoria || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{activo.estado || 'N/A'}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">{activo.metodoDepreciacion?.replace('_', ' ') || 'N/A'}</TableCell>
+                        <TableCell className="text-muted-foreground text-right">{typeof activo.depreciacionAnual === 'number' ? activo.depreciacionAnual.toFixed(2) : 'N/A'}</TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button 
                             variant="outline" 
@@ -195,6 +204,7 @@ export default function ActivosPage() {
                             className="text-amber-600 border-amber-300 hover:bg-amber-100 hover:text-amber-700" 
                             onClick={() => handleNavigateToEditActivo(activo.id)}
                             disabled={isDeleting}
+                            title="Editar"
                           >
                             <Edit2 className="h-4 w-4" />
                             <span className="sr-only">Editar</span>
@@ -206,6 +216,7 @@ export default function ActivosPage() {
                                 size="icon" 
                                 className="text-red-500 border-red-300 hover:bg-red-100 hover:text-red-600"
                                 disabled={isDeleting}
+                                title="Eliminar"
                               >
                                 <Trash2 className="h-4 w-4" />
                                 <span className="sr-only">Eliminar</span>
@@ -215,7 +226,7 @@ export default function ActivosPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>¿Confirmar Eliminación?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Esta acción no se puede deshacer. ¿Estás seguro de que quieres eliminar el activo "{activo.nombre || 'este activo'}"?
+                                  Esta acción no se puede deshacer. ¿Estás seguro de que quieres eliminar el activo: "{activo.descripcion || 'este activo'}"?
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

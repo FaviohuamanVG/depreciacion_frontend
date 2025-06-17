@@ -8,20 +8,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Save, AlertCircle, ArrowLeft, Loader2, Edit3 } from 'lucide-react';
 
 const API_BASE_URL_ACTIVOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.github.dev/api/activos';
 
-interface ActivoEditable {
+type EstadoActivo = 'ACTIVO' | 'INACTIVO' | 'EN_MANTENIMIENTO' | 'DADO_DE_BAJA';
+type MetodoDepreciacion = 'LINEA_RECTA' | 'SUMA_DIGITOS' | 'REDUCCION_SALDOS' | 'UNIDADES_PRODUCIDAS';
+
+interface ActivoEditableForm {
   id: string;
-  nombre: string;
   descripcion: string;
-  fechaAdquisicion: string; // YYYY-MM-DD
-  valorAdquisicion: string; // String for input, parsed to number
-  vidaUtilAnios: string;    // String for input, parsed to number
-  categoria: string;
-  estado: string;
+  tipo: string;
+  marca: string;
+  modelo: string;
+  zona: string;
+  costoAdquisicion: string; 
+  fechaCompra: string; // YYYY-MM-DD
+  categoriaId: string;
+  vidaUtilAnios: string;    
+  estado: EstadoActivo;
+  valorResidual: string; 
+  metodoDepreciacion: MetodoDepreciacion;
+  depreciacionAnual?: string; // Display only, if available
 }
 
 export default function EditarActivoPage() {
@@ -29,7 +39,7 @@ export default function EditarActivoPage() {
   const params = useParams();
   const activoId = params.id as string;
 
-  const [activo, setActivo] = useState<ActivoEditable | null>(null);
+  const [activo, setActivo] = useState<ActivoEditableForm | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
@@ -55,15 +65,33 @@ export default function EditarActivoPage() {
           throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
         }
         const data = await response.json();
-        // Convert numeric fields to string for form inputs
+        // Convert numeric/date fields to string for form inputs
+        // Ensure fechaCompra is in YYYY-MM-DD format
+        let formattedFechaCompra = '';
+        if (data.fechaCompra) {
+            const dateObj = new Date(data.fechaCompra);
+            const year = dateObj.getFullYear();
+            const month = ('0' + (dateObj.getMonth() + 1)).slice(-2);
+            const day = ('0' + dateObj.getDate()).slice(-2);
+            formattedFechaCompra = `${year}-${month}-${day}`;
+        }
+
         setActivo({
             ...data,
-            valorAdquisicion: data.valorAdquisicion?.toString() || '',
-            vidaUtilAnios: data.vidaUtilAnios?.toString() || '',
-            // Asegurar que los campos opcionales string no sean null
+            costoAdquisicion: data.costoAdquisicion?.toString() || '0',
+            vidaUtilAnios: data.vidaUtilAnios?.toString() || '0',
+            valorResidual: data.valorResidual?.toString() || '0',
+            depreciacionAnual: data.depreciacionAnual?.toFixed(2) || undefined,
+            fechaCompra: formattedFechaCompra,
+            // Ensure other string fields are not null
             descripcion: data.descripcion || '',
-            categoria: data.categoria || '',
-            estado: data.estado || '',
+            tipo: data.tipo || '',
+            marca: data.marca || '',
+            modelo: data.modelo || '',
+            zona: data.zona || '',
+            categoriaId: data.categoriaId || '',
+            estado: data.estado || 'ACTIVO',
+            metodoDepreciacion: data.metodoDepreciacion || 'LINEA_RECTA',
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : 'No se pudo obtener los detalles del activo.';
@@ -87,6 +115,11 @@ export default function EditarActivoPage() {
     setActivo(prev => prev ? { ...prev, [name]: value } : null);
   };
 
+  const handleSelectChange = (name: keyof ActivoEditableForm, value: string) => {
+    if (!activo) return;
+    setActivo(prev => prev ? { ...prev, [name]: value as any } : null);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!activo) {
@@ -96,26 +129,28 @@ export default function EditarActivoPage() {
     setError(null);
     setIsLoading(true);
 
-    const valorAdquisicionNum = parseFloat(activo.valorAdquisicion);
+    const costoAdquisicionNum = parseFloat(activo.costoAdquisicion);
     const vidaUtilAniosNum = parseInt(activo.vidaUtilAnios, 10);
+    const valorResidualNum = parseFloat(activo.valorResidual);
 
-    if (!activo.nombre || !activo.fechaAdquisicion || isNaN(valorAdquisicionNum) || isNaN(vidaUtilAniosNum)) {
-      const missingFields = [];
-      if (!activo.nombre) missingFields.push('Nombre');
-      if (!activo.fechaAdquisicion) missingFields.push('Fecha de Adquisición');
-      if (isNaN(valorAdquisicionNum)) missingFields.push('Valor de Adquisición (debe ser un número)');
-      if (isNaN(vidaUtilAniosNum)) missingFields.push('Vida Útil (debe ser un número entero)');
+    const missingFields = [];
+    if (!activo.descripcion) missingFields.push('Descripción');
+    if (!activo.fechaCompra) missingFields.push('Fecha de Compra');
+    if (isNaN(costoAdquisicionNum)) missingFields.push('Costo de Adquisición (debe ser un número)');
+    if (isNaN(vidaUtilAniosNum)) missingFields.push('Vida Útil (debe ser un número entero)');
+    if (isNaN(valorResidualNum)) missingFields.push('Valor Residual (debe ser un número)');
 
+    if (missingFields.length > 0) {
       const errorMessage = `Por favor, completa los campos obligatorios: ${missingFields.join(', ')}.`;
       setError(errorMessage);
       setIsLoading(false);
       toast({ title: 'Error de Validación', description: errorMessage, variant: 'destructive' });
       return;
     }
-     if (valorAdquisicionNum <= 0) {
-        setError('El Valor de Adquisición debe ser un número positivo.');
+     if (costoAdquisicionNum <= 0) {
+        setError('El Costo de Adquisición debe ser un número positivo.');
         setIsLoading(false);
-        toast({ title: 'Error de Validación', description: 'Valor de Adquisición debe ser positivo.', variant: 'destructive' });
+        toast({ title: 'Error de Validación', description: 'Costo de Adquisición debe ser positivo.', variant: 'destructive' });
         return;
     }
     if (vidaUtilAniosNum <= 0) {
@@ -124,12 +159,19 @@ export default function EditarActivoPage() {
         toast({ title: 'Error de Validación', description: 'Vida Útil debe ser positiva.', variant: 'destructive' });
         return;
     }
+    if (valorResidualNum < 0) {
+        setError('El Valor Residual no puede ser negativo.');
+        setIsLoading(false);
+        toast({ title: 'Error de Validación', description: 'Valor Residual no puede ser negativo.', variant: 'destructive' });
+        return;
+    }
 
-    const { id, ...updatePayloadRest } = activo;
+    const { id, depreciacionAnual, ...updatePayloadRest } = activo; // Exclude depreciacionAnual from payload
     const activoPayload = {
         ...updatePayloadRest,
-        valorAdquisicion: valorAdquisicionNum,
+        costoAdquisicion: costoAdquisicionNum,
         vidaUtilAnios: vidaUtilAniosNum,
+        valorResidual: valorResidualNum,
     };
 
     try {
@@ -141,10 +183,10 @@ export default function EditarActivoPage() {
         body: JSON.stringify(activoPayload),
       });
 
-      if (response.ok || response.status === 200) { // Spring suele devolver 200 para PUT con cuerpo
+      if (response.ok || response.status === 200) { 
         toast({
           title: 'Activo Actualizado',
-          description: `El activo "${activo.nombre}" ha sido actualizado exitosamente.`,
+          description: `El activo "${activo.descripcion}" ha sido actualizado exitosamente.`,
         });
         router.push('/depreciacion/activos');
       } else {
@@ -233,43 +275,97 @@ export default function EditarActivoPage() {
           </CardHeader>
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="descripcion" className="text-amber-700">Descripción del Activo</Label>
+                <Textarea id="descripcion" name="descripcion" placeholder="Ej: Horno Industrial para pollos, Modelo TurboMaster 5000, Serie HM-12345" value={activo.descripcion} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" rows={3} />
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="nombre" className="text-amber-700">Nombre del Activo</Label>
-                  <Input id="nombre" name="nombre" type="text" placeholder="Ej: Horno Industrial XYZ" value={activo.nombre} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                  <Label htmlFor="tipo" className="text-amber-700">Tipo</Label>
+                  <Input id="tipo" name="tipo" type="text" placeholder="Ej: Maquinaria, Vehículo" value={activo.tipo} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fechaAdquisicion" className="text-amber-700">Fecha de Adquisición</Label>
-                  <Input id="fechaAdquisicion" name="fechaAdquisicion" type="date" value={activo.fechaAdquisicion} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                  <Label htmlFor="categoriaId" className="text-amber-700">ID Categoría</Label>
+                  <Input id="categoriaId" name="categoriaId" type="text" placeholder="Ej: CAT-MAQ-001" value={activo.categoriaId} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="marca" className="text-amber-700">Marca</Label>
+                  <Input id="marca" name="marca" type="text" placeholder="Ej: Rational" value={activo.marca} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="modelo" className="text-amber-700">Modelo</Label>
+                  <Input id="modelo" name="modelo" type="text" placeholder="Ej: SelfCookingCenter" value={activo.modelo} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zona" className="text-amber-700">Zona/Ubicación</Label>
+                  <Input id="zona" name="zona" type="text" placeholder="Ej: Cocina Principal" value={activo.zona} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="descripcion" className="text-amber-700">Descripción</Label>
-                <Textarea id="descripcion" name="descripcion" placeholder="Detalles del activo, modelo, serie, etc." value={activo.descripcion} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" rows={3}/>
-              </div>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="valorAdquisicion" className="text-amber-700">Valor de Adquisición (S/)</Label>
-                  <Input id="valorAdquisicion" name="valorAdquisicion" type="number" placeholder="Ej: 5500.50" value={activo.valorAdquisicion} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" step="0.01" />
+                  <Label htmlFor="fechaCompra" className="text-amber-700">Fecha de Compra</Label>
+                  <Input id="fechaCompra" name="fechaCompra" type="date" value={activo.fechaCompra} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="vidaUtilAnios" className="text-amber-700">Vida Útil (Años)</Label>
-                  <Input id="vidaUtilAnios" name="vidaUtilAnios" type="number" placeholder="Ej: 5" value={activo.vidaUtilAnios} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" step="1" />
+                  <Label htmlFor="costoAdquisicion" className="text-amber-700">Costo de Adquisición (S/)</Label>
+                  <Input id="costoAdquisicion" name="costoAdquisicion" type="number" placeholder="Ej: 5500.50" value={activo.costoAdquisicion} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" step="0.01" />
                 </div>
               </div>
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="categoria" className="text-amber-700">Categoría</Label>
-                  <Input id="categoria" name="categoria" type="text" placeholder="Ej: Maquinaria, Mobiliario" value={activo.categoria} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                  <Label htmlFor="vidaUtilAnios" className="text-amber-700">Vida Útil (Años)</Label>
+                  <Input id="vidaUtilAnios" name="vidaUtilAnios" type="number" placeholder="Ej: 5" value={activo.vidaUtilAnios} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" step="1" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="estado" className="text-amber-700">Estado</Label>
-                  <Input id="estado" name="estado" type="text" placeholder="Ej: NUEVO, USADO" value={activo.estado} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                  <Label htmlFor="valorResidual" className="text-amber-700">Valor Residual (S/)</Label>
+                  <Input id="valorResidual" name="valorResidual" type="number" placeholder="Ej: 500.00" value={activo.valorResidual} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" step="0.01" />
                 </div>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="estado" className="text-amber-700">Estado</Label>
+                   <Select value={activo.estado} onValueChange={(value) => handleSelectChange('estado', value)} disabled={isLoading}>
+                    <SelectTrigger className="w-full border-amber-300 focus:border-amber-500 ring-offset-amber-50">
+                      <SelectValue placeholder="Seleccione un estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVO">ACTIVO</SelectItem>
+                      <SelectItem value="INACTIVO">INACTIVO</SelectItem>
+                      <SelectItem value="EN_MANTENIMIENTO">EN MANTENIMIENTO</SelectItem>
+                      <SelectItem value="DADO_DE_BAJA">DADO DE BAJA</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="metodoDepreciacion" className="text-amber-700">Método de Depreciación</Label>
+                   <Select value={activo.metodoDepreciacion} onValueChange={(value) => handleSelectChange('metodoDepreciacion', value)} disabled={isLoading}>
+                    <SelectTrigger className="w-full border-amber-300 focus:border-amber-500 ring-offset-amber-50">
+                      <SelectValue placeholder="Seleccione un método" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="LINEA_RECTA">LINEA RECTA</SelectItem>
+                      <SelectItem value="SUMA_DIGITOS">SUMA DE DÍGITOS</SelectItem>
+                      <SelectItem value="REDUCCION_SALDOS">REDUCCIÓN DE SALDOS</SelectItem>
+                      <SelectItem value="UNIDADES_PRODUCIDAS">UNIDADES PRODUCIDAS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+                
+              {activo.depreciacionAnual !== undefined && (
+                <div className="space-y-2">
+                    <Label className="text-amber-700">Depreciación Anual Calculada (S/)</Label>
+                    <Input type="text" value={activo.depreciacionAnual} disabled className="border-amber-300 bg-amber-50 text-amber-800 font-medium" />
+                </div>
+              )}
+
 
               {error && !isFetching && (
                 <div className="flex items-center p-3 text-sm text-red-700 bg-red-100 border border-red-300 rounded-md">
