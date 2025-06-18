@@ -108,9 +108,9 @@ export default function EditarActivoPage() {
 
         setActivo({
             ...data,
-            costoAdquisicion: data.costoAdquisicion?.toString() || '0',
-            vidaUtilAnios: data.vidaUtilAnios?.toString() || '0',
-            valorResidual: data.valorResidual?.toString() || '0',
+            costoAdquisicion: (data.costoAdquisicion && data.costoAdquisicion > 0) ? data.costoAdquisicion.toString() : '',
+            vidaUtilAnios: (data.vidaUtilAnios && data.vidaUtilAnios > 0) ? data.vidaUtilAnios.toString() : '',
+            valorResidual: data.valorResidual !== undefined && data.valorResidual !== null ? data.valorResidual.toString() : '0',
             depreciacionAnual: data.depreciacionAnual?.toFixed(2) || undefined,
             fechaCompra: formattedFechaCompra,
             descripcion: data.descripcion || '',
@@ -444,3 +444,5 @@ export default function EditarActivoPage() {
     </>
   );
 }
+
+    
