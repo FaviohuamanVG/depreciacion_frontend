@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Save, AlertCircle, ArrowLeft, Loader2, Edit3 } from 'lucide-react';
 
 const API_BASE_URL_ACTIVOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.github.dev/api/activos';
+const API_BASE_URL_CATEGORIAS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.github.dev/api/categorias';
 
 type EstadoActivo = 'ACTIVO' | 'INACTIVO' | 'EN_MANTENIMIENTO' | 'DADO_DE_BAJA';
 type MetodoDepreciacion = 'LINEA_RECTA' | 'SUMA_DIGITOS' | 'REDUCCION_SALDOS' | 'UNIDADES_PRODUCIDAS';
@@ -56,7 +57,7 @@ export default function EditarActivoPage() {
     const fetchCategorias = async () => {
       setIsCategoriasLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL_ACTIVOS}/categorias`);
+        const response = await fetch(API_BASE_URL_CATEGORIAS); // Corregido aquí
         if (!response.ok) {
           throw new Error('No se pudieron cargar las categorías');
         }
@@ -242,7 +243,7 @@ export default function EditarActivoPage() {
     }
   };
 
-  if (isFetchingActivo || (isCategoriasLoading && !categorias.length)) { // Show loader if fetching activo or initial category load
+  if (isFetchingActivo || (isCategoriasLoading && !categorias.length)) { 
     return (
       <div className="flex flex-1 justify-center items-center min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 p-4">
         <Loader2 className="h-12 w-12 text-amber-500 animate-spin" />

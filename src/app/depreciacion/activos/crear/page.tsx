@@ -13,6 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 
 const API_BASE_URL_ACTIVOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.github.dev/api/activos';
+const API_BASE_URL_CATEGORIAS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.github.dev/api/categorias';
+
 
 type EstadoActivo = 'ACTIVO' | 'INACTIVO' | 'EN_MANTENIMIENTO' | 'DADO_DE_BAJA';
 type MetodoDepreciacion = 'LINEA_RECTA' | 'SUMA_DIGITOS' | 'REDUCCION_SALDOS' | 'UNIDADES_PRODUCIDAS';
@@ -63,7 +65,7 @@ export default function CrearActivoPage() {
     const fetchCategorias = async () => {
       setIsCategoriasLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL_ACTIVOS}/categorias`);
+        const response = await fetch(API_BASE_URL_CATEGORIAS); // Corregido aquí
         if (!response.ok) {
           throw new Error('No se pudieron cargar las categorías');
         }
