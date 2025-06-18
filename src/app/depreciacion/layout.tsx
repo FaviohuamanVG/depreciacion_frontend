@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { Building, TrendingDown, DollarSign, CalendarDays, LogOut, LayoutDashboard, Archive, FileText, HelpCircle, Users } from 'lucide-react';
+import { LogOut, LayoutDashboard, Archive, FileText, HelpCircle, Users, Tags } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 export default function DepreciacionLayout({ children }: { children: ReactNode }) {
@@ -39,6 +39,12 @@ export default function DepreciacionLayout({ children }: { children: ReactNode }
       icon: <Archive />,
       label: 'Activos',
       tooltip: 'Gestión de Activos',
+    },
+    {
+      path: '/depreciacion/categorias',
+      icon: <Tags />,
+      label: 'Categorías',
+      tooltip: 'Categorías de Activos',
     },
     {
       path: '/depreciacion/usuarios',
