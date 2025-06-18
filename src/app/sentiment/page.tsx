@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_SENTIMIENTOS_URL || 'https://8080-firebase-cognitiveapisgit-1748893329986.cluster-4xpux6pqdzhrktbhjf2cumyqtg.cloudworkstations.dev/api/sentimientos';
 
 interface ApiInteraction {
-  id?: string;
+  id?: string; // Optional ID field
   apiName?: string;
   input: string;
   output?: string;
