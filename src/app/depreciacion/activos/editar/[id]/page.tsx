@@ -57,7 +57,7 @@ export default function EditarActivoPage() {
     const fetchCategorias = async () => {
       setIsCategoriasLoading(true);
       try {
-        const response = await fetch(API_BASE_URL_CATEGORIAS); // Corregido aquí
+        const response = await fetch(API_BASE_URL_CATEGORIAS);
         if (!response.ok) {
           throw new Error('No se pudieron cargar las categorías');
         }
