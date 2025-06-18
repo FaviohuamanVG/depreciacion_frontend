@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,11 @@ const API_BASE_URL_ACTIVOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.gi
 
 type EstadoActivo = 'ACTIVO' | 'INACTIVO' | 'EN_MANTENIMIENTO' | 'DADO_DE_BAJA';
 type MetodoDepreciacion = 'LINEA_RECTA' | 'SUMA_DIGITOS' | 'REDUCCION_SALDOS' | 'UNIDADES_PRODUCIDAS';
+
+interface CategoriaBasic {
+  id: string;
+  nombreCategoria: string;
+}
 
 interface NewActivoForm {
   descripcion: string;
@@ -43,14 +48,40 @@ export default function CrearActivoPage() {
     fechaCompra: '',
     categoriaId: '',
     vidaUtilAnios: '',
-    estado: 'ACTIVO', // Default
-    valorResidual: '0', // Default to 0
-    metodoDepreciacion: 'LINEA_RECTA', // Default
+    estado: 'ACTIVO',
+    valorResidual: '0',
+    metodoDepreciacion: 'LINEA_RECTA',
   });
+  const [categorias, setCategorias] = useState<CategoriaBasic[]>([]);
+  const [isCategoriasLoading, setIsCategoriasLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      setIsCategoriasLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL_ACTIVOS}/categorias`);
+        if (!response.ok) {
+          throw new Error('No se pudieron cargar las categorías');
+        }
+        const data: CategoriaBasic[] = await response.json();
+        setCategorias(data);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Error desconocido.';
+        toast({
+          title: 'Error al cargar Categorías',
+          description: message,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsCategoriasLoading(false);
+      }
+    };
+    fetchCategorias();
+  }, [toast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -73,6 +104,7 @@ export default function CrearActivoPage() {
     const missingFields = [];
     if (!newActivo.descripcion) missingFields.push('Descripción');
     if (!newActivo.fechaCompra) missingFields.push('Fecha de Compra');
+    if (!newActivo.categoriaId) missingFields.push('Categoría');
     if (isNaN(costoAdquisicionNum)) missingFields.push('Costo de Adquisición (debe ser un número)');
     if (isNaN(vidaUtilAniosNum)) missingFields.push('Vida Útil (debe ser un número entero)');
     if (isNaN(valorResidualNum)) missingFields.push('Valor Residual (debe ser un número)');
@@ -104,13 +136,11 @@ export default function CrearActivoPage() {
         return;
     }
 
-
     const activoPayload = {
         ...newActivo,
         costoAdquisicion: costoAdquisicionNum,
         vidaUtilAnios: vidaUtilAniosNum,
         valorResidual: valorResidualNum,
-        // El backend calcula depreciacionAnual
     };
 
     try {
@@ -184,9 +214,28 @@ export default function CrearActivoPage() {
                   <Label htmlFor="tipo" className="text-amber-700">Tipo</Label>
                   <Input id="tipo" name="tipo" type="text" placeholder="Ej: Maquinaria, Vehículo, Mobiliario" value={newActivo.tipo} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
                 </div>
-                 <div className="space-y-2">
-                  <Label htmlFor="categoriaId" className="text-amber-700">ID Categoría</Label>
-                  <Input id="categoriaId" name="categoriaId" type="text" placeholder="Ej: CAT-MAQ-001" value={newActivo.categoriaId} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                <div className="space-y-2">
+                  <Label htmlFor="categoriaId" className="text-amber-700">Categoría</Label>
+                  <Select 
+                    value={newActivo.categoriaId} 
+                    onValueChange={(value) => handleSelectChange('categoriaId', value)} 
+                    disabled={isLoading || isCategoriasLoading}
+                  >
+                    <SelectTrigger className="w-full border-amber-300 focus:border-amber-500 ring-offset-amber-50">
+                      <SelectValue placeholder={isCategoriasLoading ? "Cargando categorías..." : "Seleccione una categoría"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isCategoriasLoading ? (
+                        <SelectItem value="loading" disabled>Cargando...</SelectItem>
+                      ) : categorias.length === 0 ? (
+                         <SelectItem value="no-options" disabled>No hay categorías disponibles</SelectItem>
+                      ) : (
+                        categorias.map(cat => (
+                          <SelectItem key={cat.id} value={cat.id}>{cat.nombreCategoria}</SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -264,7 +313,7 @@ export default function CrearActivoPage() {
                   <p>{error}</p>
                 </div>
               )}
-              <Button type="submit" className="w-full text-lg py-3 bg-amber-600 hover:bg-amber-700 text-white" disabled={isLoading}>
+              <Button type="submit" className="w-full text-lg py-3 bg-amber-600 hover:bg-amber-700 text-white" disabled={isLoading || isCategoriasLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5" />

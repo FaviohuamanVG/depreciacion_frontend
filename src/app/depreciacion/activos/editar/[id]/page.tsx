@@ -17,6 +17,11 @@ const API_BASE_URL_ACTIVOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.gi
 type EstadoActivo = 'ACTIVO' | 'INACTIVO' | 'EN_MANTENIMIENTO' | 'DADO_DE_BAJA';
 type MetodoDepreciacion = 'LINEA_RECTA' | 'SUMA_DIGITOS' | 'REDUCCION_SALDOS' | 'UNIDADES_PRODUCIDAS';
 
+interface CategoriaBasic {
+  id: string;
+  nombreCategoria: string;
+}
+
 interface ActivoEditableForm {
   id: string;
   descripcion: string;
@@ -31,7 +36,7 @@ interface ActivoEditableForm {
   estado: EstadoActivo;
   valorResidual: string; 
   metodoDepreciacion: MetodoDepreciacion;
-  depreciacionAnual?: string; // Display only, if available
+  depreciacionAnual?: string; 
 }
 
 export default function EditarActivoPage() {
@@ -40,22 +45,48 @@ export default function EditarActivoPage() {
   const activoId = params.id as string;
 
   const [activo, setActivo] = useState<ActivoEditableForm | null>(null);
+  const [categorias, setCategorias] = useState<CategoriaBasic[]>([]);
+  const [isCategoriasLoading, setIsCategoriasLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
+  const [isFetchingActivo, setIsFetchingActivo] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      setIsCategoriasLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL_ACTIVOS}/categorias`);
+        if (!response.ok) {
+          throw new Error('No se pudieron cargar las categorías');
+        }
+        const data: CategoriaBasic[] = await response.json();
+        setCategorias(data);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Error desconocido al cargar categorías.';
+        toast({
+          title: 'Error al cargar Categorías',
+          description: message,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsCategoriasLoading(false);
+      }
+    };
+    fetchCategorias();
+  }, [toast]);
 
   useEffect(() => {
     if (!activoId) {
       setError('ID de activo no encontrado.');
-      setIsFetching(false);
+      setIsFetchingActivo(false);
       toast({ title: 'Error', description: 'No se proporcionó un ID de activo.', variant: 'destructive' });
       router.push('/depreciacion/activos');
       return;
     }
 
     const fetchActivoDetails = async () => {
-      setIsFetching(true);
+      setIsFetchingActivo(true);
       setError(null);
       try {
         const response = await fetch(`${API_BASE_URL_ACTIVOS}/${activoId}`);
@@ -65,8 +96,6 @@ export default function EditarActivoPage() {
           throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
         }
         const data = await response.json();
-        // Convert numeric/date fields to string for form inputs
-        // Ensure fechaCompra is in YYYY-MM-DD format
         let formattedFechaCompra = '';
         if (data.fechaCompra) {
             const dateObj = new Date(data.fechaCompra);
@@ -83,7 +112,6 @@ export default function EditarActivoPage() {
             valorResidual: data.valorResidual?.toString() || '0',
             depreciacionAnual: data.depreciacionAnual?.toFixed(2) || undefined,
             fechaCompra: formattedFechaCompra,
-            // Ensure other string fields are not null
             descripcion: data.descripcion || '',
             tipo: data.tipo || '',
             marca: data.marca || '',
@@ -102,7 +130,7 @@ export default function EditarActivoPage() {
           variant: 'destructive',
         });
       } finally {
-        setIsFetching(false);
+        setIsFetchingActivo(false);
       }
     };
 
@@ -136,6 +164,7 @@ export default function EditarActivoPage() {
     const missingFields = [];
     if (!activo.descripcion) missingFields.push('Descripción');
     if (!activo.fechaCompra) missingFields.push('Fecha de Compra');
+    if (!activo.categoriaId) missingFields.push('Categoría');
     if (isNaN(costoAdquisicionNum)) missingFields.push('Costo de Adquisición (debe ser un número)');
     if (isNaN(vidaUtilAniosNum)) missingFields.push('Vida Útil (debe ser un número entero)');
     if (isNaN(valorResidualNum)) missingFields.push('Valor Residual (debe ser un número)');
@@ -166,7 +195,7 @@ export default function EditarActivoPage() {
         return;
     }
 
-    const { id, depreciacionAnual, ...updatePayloadRest } = activo; // Exclude depreciacionAnual from payload
+    const { id, depreciacionAnual, ...updatePayloadRest } = activo; 
     const activoPayload = {
         ...updatePayloadRest,
         costoAdquisicion: costoAdquisicionNum,
@@ -213,11 +242,11 @@ export default function EditarActivoPage() {
     }
   };
 
-  if (isFetching) {
+  if (isFetchingActivo || (isCategoriasLoading && !categorias.length)) { // Show loader if fetching activo or initial category load
     return (
       <div className="flex flex-1 justify-center items-center min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 p-4">
         <Loader2 className="h-12 w-12 text-amber-500 animate-spin" />
-        <p className="ml-4 text-amber-600">Cargando datos del activo...</p>
+        <p className="ml-4 text-amber-600">Cargando datos...</p>
       </div>
     );
   }
@@ -277,7 +306,7 @@ export default function EditarActivoPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="descripcion" className="text-amber-700">Descripción del Activo</Label>
-                <Textarea id="descripcion" name="descripcion" placeholder="Ej: Horno Industrial para pollos, Modelo TurboMaster 5000, Serie HM-12345" value={activo.descripcion} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" rows={3} />
+                <Textarea id="descripcion" name="descripcion" placeholder="Ej: Horno Industrial para pollos" value={activo.descripcion} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" rows={3} />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -286,8 +315,27 @@ export default function EditarActivoPage() {
                   <Input id="tipo" name="tipo" type="text" placeholder="Ej: Maquinaria, Vehículo" value={activo.tipo} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="categoriaId" className="text-amber-700">ID Categoría</Label>
-                  <Input id="categoriaId" name="categoriaId" type="text" placeholder="Ej: CAT-MAQ-001" value={activo.categoriaId} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                  <Label htmlFor="categoriaId" className="text-amber-700">Categoría</Label>
+                    <Select 
+                        value={activo.categoriaId} 
+                        onValueChange={(value) => handleSelectChange('categoriaId', value)} 
+                        disabled={isLoading || isCategoriasLoading}
+                    >
+                        <SelectTrigger className="w-full border-amber-300 focus:border-amber-500 ring-offset-amber-50">
+                        <SelectValue placeholder={isCategoriasLoading ? "Cargando categorías..." : "Seleccione una categoría"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {isCategoriasLoading ? (
+                            <SelectItem value="loading" disabled>Cargando...</SelectItem>
+                        ) : categorias.length === 0 ? (
+                            <SelectItem value="no-options" disabled>No hay categorías disponibles</SelectItem>
+                        ) : (
+                            categorias.map(cat => (
+                            <SelectItem key={cat.id} value={cat.id}>{cat.nombreCategoria}</SelectItem>
+                            ))
+                        )}
+                        </SelectContent>
+                    </Select>
                 </div>
               </div>
               
@@ -366,14 +414,13 @@ export default function EditarActivoPage() {
                 </div>
               )}
 
-
-              {error && !isFetching && (
+              {error && !isFetchingActivo && (
                 <div className="flex items-center p-3 text-sm text-red-700 bg-red-100 border border-red-300 rounded-md">
                   <AlertCircle className="w-5 h-5 mr-2 shrink-0" />
                   <p>{error}</p>
                 </div>
               )}
-              <Button type="submit" className="w-full text-lg py-3 bg-amber-600 hover:bg-amber-700 text-white" disabled={isLoading || isFetching}>
+              <Button type="submit" className="w-full text-lg py-3 bg-amber-600 hover:bg-amber-700 text-white" disabled={isLoading || isFetchingActivo || isCategoriasLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5" />
