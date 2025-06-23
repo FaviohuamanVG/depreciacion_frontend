@@ -19,9 +19,13 @@ const API_BASE_URL_ACTIVOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.gi
 interface Depreciacion {
   id: string;
   activoId: string;
-  fecha: string; // ISO Date string
-  montoDepreciado: number;
-  valorEnLibros: number;
+  fecha: string;
+  valorDepreciado: number;
+  valorLibros: number;
+  anioDepreciacion?: number;
+  mesDepreciacion?: number;
+  tasaDepreciacionAplicada?: number;
+  observaciones?: string;
 }
 
 interface ActivoBasic {
@@ -268,8 +272,9 @@ export default function ReportesPage() {
                     <TableRow>
                       <TableHead className="text-amber-700 font-semibold">Activo</TableHead>
                       <TableHead className="text-amber-700 font-semibold">Fecha</TableHead>
-                      <TableHead className="text-amber-700 font-semibold text-right">Monto Depreciado</TableHead>
+                      <TableHead className="text-amber-700 font-semibold text-right">Valor Depreciado</TableHead>
                       <TableHead className="text-amber-700 font-semibold text-right">Valor en Libros</TableHead>
+                      <TableHead className="text-amber-700 font-semibold">Observaciones</TableHead>
                       <TableHead className="text-amber-700 font-semibold text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -278,8 +283,9 @@ export default function ReportesPage() {
                       <TableRow key={dep.id} className="hover:bg-amber-50/50">
                         <TableCell className="text-muted-foreground font-medium">{activosMap.get(dep.activoId) || dep.activoId}</TableCell>
                         <TableCell className="text-muted-foreground">{formatDate(dep.fecha)}</TableCell>
-                        <TableCell className="text-muted-foreground text-right">{formatCurrency(dep.montoDepreciado)}</TableCell>
-                        <TableCell className="text-muted-foreground text-right">{formatCurrency(dep.valorEnLibros)}</TableCell>
+                        <TableCell className="text-muted-foreground text-right">{formatCurrency(dep.valorDepreciado)}</TableCell>
+                        <TableCell className="text-muted-foreground text-right">{formatCurrency(dep.valorLibros)}</TableCell>
+                        <TableCell className="text-muted-foreground max-w-xs truncate">{dep.observaciones || 'N/A'}</TableCell>
                         <TableCell className="text-right">
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
