@@ -77,7 +77,9 @@ export default function ActivosPage() {
     setIsStateChanging(true);
     const action = newStatus === 'ACTIVO' ? 'activar' : 'desactivar';
     try {
-      const response = await fetch(`${API_BASE_URL_ACTIVOS}/${activoId}/${action}`, {
+      // Using URL constructor for more robust URL building
+      const url = new URL(`${API_BASE_URL_ACTIVOS}/${activoId}/${action}`);
+      const response = await fetch(url.href, {
         method: 'PUT',
       });
 
