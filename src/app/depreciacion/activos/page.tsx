@@ -1,13 +1,14 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Archive, PlusCircle, Edit2, Loader2, AlertCircle, ArchiveRestore } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Archive, PlusCircle, Edit2, Loader2, AlertCircle, ArchiveRestore, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const API_BASE_URL_ACTIVOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.github.dev/api/activos';
@@ -20,7 +21,7 @@ interface Activo {
   modelo?: string;
   zona?: string;
   costoAdquisicion: number;
-  fechaCompra: string; // ISO Date string from backend, YYYY-MM-DD from form
+  fechaCompra: string; 
   categoriaId?: string;
   vidaUtilAnios: number;
   estado: 'ACTIVO' | 'INACTIVO' | 'EN_MANTENIMIENTO' | 'DADO_DE_BAJA';
@@ -36,6 +37,7 @@ export default function ActivosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isStateChanging, setIsStateChanging] = useState(false);
+  const [view, setView] = useState<'all' | 'active' | 'inactive'>('all');
 
   const fetchActivos = async () => {
     setIsLoading(true);
@@ -65,6 +67,18 @@ export default function ActivosPage() {
     fetchActivos();
   }, []);
 
+  const displayedActivos = useMemo(() => {
+    switch (view) {
+      case 'active':
+        return activos.filter(a => a.estado === 'ACTIVO' || a.estado === 'EN_MANTENIMIENTO');
+      case 'inactive':
+        return activos.filter(a => a.estado === 'INACTIVO' || a.estado === 'DADO_DE_BAJA');
+      case 'all':
+      default:
+        return activos;
+    }
+  }, [activos, view]);
+
   const handleNavigateToCreateActivo = () => {
     router.push('/depreciacion/activos/crear');
   };
@@ -77,7 +91,6 @@ export default function ActivosPage() {
     setIsStateChanging(true);
     const action = newStatus === 'ACTIVO' ? 'activar' : 'desactivar';
     try {
-      // Using URL constructor for more robust URL building
       const url = new URL(`${API_BASE_URL_ACTIVOS}/${activoId}/${action}`);
       const response = await fetch(url.href, {
         method: 'PUT',
@@ -112,7 +125,7 @@ export default function ActivosPage() {
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'N/A';
     try {
-      const dateParts = dateString.split('T')[0].split('-'); // Handle ISO string like "2023-10-26T00:00:00.000+00:00"
+      const dateParts = dateString.split('T')[0].split('-'); 
       if (dateParts.length === 3) {
          const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
          return date.toLocaleDateString('es-PE', {
@@ -121,7 +134,7 @@ export default function ActivosPage() {
             year: 'numeric',
          });
       }
-      const date = new Date(dateString); // Fallback for other formats
+      const date = new Date(dateString);
       return date.toLocaleDateString('es-PE', {
         day: '2-digit',
         month: '2-digit',
@@ -139,7 +152,7 @@ export default function ActivosPage() {
       </div>
       <main className="flex flex-1 flex-col items-center p-4 sm:p-6 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
         <Card className="w-full max-w-full shadow-lg">
-          <CardHeader className="bg-amber-100 rounded-t-lg flex flex-row items-center justify-between">
+          <CardHeader className="bg-amber-100 rounded-t-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4">
             <div>
               <CardTitle className="text-2xl font-bold text-amber-700 flex items-center">
                 <Archive className="mr-3 h-7 w-7" />
@@ -149,10 +162,23 @@ export default function ActivosPage() {
                 Administre los activos fijos de la pollería.
               </CardDescription>
             </div>
-            <Button onClick={handleNavigateToCreateActivo} className="bg-amber-600 hover:bg-amber-700 text-white shrink-0">
-              <PlusCircle className="mr-2 h-5 w-5" />
-              Crear Nuevo Activo
-            </Button>
+            <div className="flex w-full sm:w-auto items-center gap-2">
+                <Select value={view} onValueChange={(value) => setView(value as any)}>
+                    <SelectTrigger className="w-full sm:w-[180px] bg-white border-amber-300">
+                        <Filter className="mr-2 h-4 w-4" />
+                        <SelectValue placeholder="Filtrar por estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Mostrar Todos</SelectItem>
+                        <SelectItem value="active">Mostrar Activos</SelectItem>
+                        <SelectItem value="inactive">Mostrar Inactivos</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Button onClick={handleNavigateToCreateActivo} className="bg-amber-600 hover:bg-amber-700 text-white shrink-0">
+                  <PlusCircle className="mr-2 h-5 w-5" />
+                  Crear Nuevo Activo
+                </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-6">
             {isLoading && (
@@ -171,12 +197,16 @@ export default function ActivosPage() {
                 </Button>
               </div>
             )}
-            {!isLoading && !error && activos.length === 0 && (
+            {!isLoading && !error && displayedActivos.length === 0 && (
               <div className="mt-6 border-2 border-dashed border-amber-300 rounded-lg p-10 text-center text-amber-500">
-                <p>No se encontraron activos. ¡Empieza creando uno!</p>
+                <p>
+                  {view === 'all' && "No se encontraron activos. ¡Empieza creando uno!"}
+                  {view === 'active' && "No se encontraron activos en estado 'ACTIVO' o 'EN MANTENIMIENTO'."}
+                  {view === 'inactive' && "No se encontraron activos en estado 'INACTIVO' o 'DADO DE BAJA'."}
+                </p>
               </div>
             )}
-            {!isLoading && !error && activos.length > 0 && (
+            {!isLoading && !error && displayedActivos.length > 0 && (
               <div className="overflow-x-auto mt-6">
                 <Table className="min-w-full">
                   <TableHeader className="bg-amber-50">
@@ -194,8 +224,10 @@ export default function ActivosPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {activos.map((activo) => {
+                    {displayedActivos.map((activo) => {
                       const isActivo = activo.estado === 'ACTIVO' || activo.estado === 'EN_MANTENIMIENTO';
+                      const canToggle = activo.estado === 'ACTIVO' || activo.estado === 'INACTIVO';
+                      
                       return (
                       <TableRow key={activo.id} className="hover:bg-amber-50/50">
                         <TableCell className="text-muted-foreground font-medium max-w-xs truncate">{activo.descripcion || 'N/A'}</TableCell>
@@ -219,41 +251,43 @@ export default function ActivosPage() {
                             <Edit2 className="h-4 w-4" />
                             <span className="sr-only">Editar</span>
                           </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="icon" 
-                                className={isActivo ? "text-red-500 border-red-300 hover:bg-red-100 hover:text-red-600" : "text-green-500 border-green-300 hover:bg-green-100 hover:text-green-600"}
-                                disabled={isStateChanging}
-                                title={isActivo ? "Desactivar" : "Activar"}
-                              >
-                                {isActivo ? <Archive className="h-4 w-4" /> : <ArchiveRestore className="h-4 w-4" />}
-                                <span className="sr-only">{isActivo ? "Desactivar" : "Activar"}</span>
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>¿Confirmar cambio de estado?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  {isActivo 
-                                    ? `¿Estás seguro de que quieres desactivar el activo: "${activo.descripcion || 'este activo'}"?` 
-                                    : `¿Estás seguro de que quieres reactivar el activo: "${activo.descripcion || 'este activo'}"?`}
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel disabled={isStateChanging}>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => handleChangeStatus(activo.id, isActivo ? 'INACTIVO' : 'ACTIVO')}
+                          {canToggle && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="icon" 
+                                  className={isActivo ? "text-red-500 border-red-300 hover:bg-red-100 hover:text-red-600" : "text-green-500 border-green-300 hover:bg-green-100 hover:text-green-600"}
                                   disabled={isStateChanging}
-                                  className={isActivo ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
+                                  title={isActivo ? "Desactivar" : "Activar"}
                                 >
-                                  {isStateChanging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                  {isActivo ? 'Desactivar' : 'Activar'}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                                  {isActivo ? <Archive className="h-4 w-4" /> : <ArchiveRestore className="h-4 w-4" />}
+                                  <span className="sr-only">{isActivo ? "Desactivar" : "Activar"}</span>
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Confirmar cambio de estado?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {isActivo 
+                                      ? `¿Estás seguro de que quieres desactivar el activo: "${activo.descripcion || 'este activo'}"?` 
+                                      : `¿Estás seguro de que quieres reactivar el activo: "${activo.descripcion || 'este activo'}"?`}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel disabled={isStateChanging}>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleChangeStatus(activo.id, isActivo ? 'INACTIVO' : 'ACTIVO')}
+                                    disabled={isStateChanging}
+                                    className={isActivo ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
+                                  >
+                                    {isStateChanging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isActivo ? 'Desactivar' : 'Activar'}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </TableCell>
                       </TableRow>
                     )})}
