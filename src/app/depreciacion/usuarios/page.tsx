@@ -1,12 +1,14 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, UserPlus, AlertCircle, Loader2, Edit2, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Users, UserPlus, AlertCircle, Loader2, Edit2, UserX, UserCheck, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const API_BASE_URL_USUARIOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.github.dev/api/usuarios';
@@ -18,7 +20,8 @@ interface Usuario {
   dni: string;
   correo: string;
   rol: string;
-  ultimoAcceso: string; // Asumiendo que el backend devuelve la fecha como string ISO
+  ultimoAcceso: string;
+  estado: 'ACTIVO' | 'INACTIVO';
 }
 
 export default function GestionUsuariosPage() {
@@ -27,6 +30,8 @@ export default function GestionUsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isStateChanging, setIsStateChanging] = useState(false);
+  const [view, setView] = useState<'all' | 'active' | 'inactive'>('all');
 
   const fetchUsuarios = async () => {
     setIsLoading(true);
@@ -56,12 +61,58 @@ export default function GestionUsuariosPage() {
     fetchUsuarios();
   }, []);
 
+  const displayedUsuarios = useMemo(() => {
+    switch (view) {
+      case 'active':
+        return usuarios.filter(u => u.estado === 'ACTIVO');
+      case 'inactive':
+        return usuarios.filter(u => u.estado === 'INACTIVO');
+      case 'all':
+      default:
+        return usuarios;
+    }
+  }, [usuarios, view]);
+
+
   const handleNavigateToCreateUser = () => {
     router.push('/depreciacion/usuarios/crear');
   };
 
   const handleNavigateToEditUser = (userId: string) => {
     router.push(`/depreciacion/usuarios/editar/${userId}`);
+  };
+
+  const handleChangeStatus = async (usuarioId: string, newStatus: 'ACTIVO' | 'INACTIVO') => {
+    setIsStateChanging(true);
+    const action = newStatus === 'ACTIVO' ? 'activar' : 'desactivar';
+    try {
+      const response = await fetch(`${API_BASE_URL_USUARIOS}/${usuarioId}/${action}`, {
+        method: 'PUT',
+      });
+
+      if (response.ok) {
+        const updatedUser = await response.json();
+        toast({
+          title: `Usuario ${action === 'activar' ? 'Activado' : 'Desactivado'}`,
+          description: 'El estado del usuario ha sido actualizado.',
+        });
+        setUsuarios(prevUsuarios =>
+          prevUsuarios.map(u => (u.id === usuarioId ? { ...u, estado: updatedUser.estado } : u))
+        );
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Error desconocido al cambiar estado.' }));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al cambiar estado.';
+      toast({
+        title: 'Error al Actualizar Estado',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsStateChanging(false);
+    }
   };
 
   const formatDateTime = (dateTimeString: string | null) => {
@@ -87,8 +138,8 @@ export default function GestionUsuariosPage() {
         <h1 className="text-xl font-semibold text-amber-800">Gestión de Usuarios</h1>
       </div>
       <main className="flex flex-1 flex-col items-center p-4 sm:p-6 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-        <Card className="w-full max-w-5xl shadow-lg">
-          <CardHeader className="bg-amber-100 rounded-t-lg flex flex-row items-center justify-between">
+        <Card className="w-full max-w-full shadow-lg">
+          <CardHeader className="bg-amber-100 rounded-t-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4">
             <div>
               <CardTitle className="text-2xl font-bold text-amber-700 flex items-center">
                 <Users className="mr-3 h-7 w-7" />
@@ -98,10 +149,23 @@ export default function GestionUsuariosPage() {
                 Administra los usuarios del sistema de depreciación.
               </CardDescription>
             </div>
-            <Button onClick={handleNavigateToCreateUser} className="bg-amber-600 hover:bg-amber-700 text-white shrink-0">
-              <UserPlus className="mr-2 h-5 w-5" />
-              Crear Nuevo Usuario
-            </Button>
+             <div className="flex w-full sm:w-auto items-center gap-2">
+                <Select value={view} onValueChange={(value) => setView(value as any)}>
+                    <SelectTrigger className="w-full sm:w-[180px] bg-white border-amber-300">
+                        <Filter className="mr-2 h-4 w-4" />
+                        <SelectValue placeholder="Filtrar por estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Mostrar Todos</SelectItem>
+                        <SelectItem value="active">Mostrar Activos</SelectItem>
+                        <SelectItem value="inactive">Mostrar Inactivos</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Button onClick={handleNavigateToCreateUser} className="bg-amber-600 hover:bg-amber-700 text-white shrink-0">
+                  <UserPlus className="mr-2 h-5 w-5" />
+                  Crear Nuevo Usuario
+                </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-6">
             {isLoading && (
@@ -120,12 +184,16 @@ export default function GestionUsuariosPage() {
                 </Button>
               </div>
             )}
-            {!isLoading && !error && usuarios.length === 0 && (
+            {!isLoading && !error && displayedUsuarios.length === 0 && (
               <div className="mt-6 border-2 border-dashed border-amber-300 rounded-lg p-10 text-center text-amber-500">
-                <p>No se encontraron usuarios. ¡Empieza creando uno!</p>
+                 <p>
+                  {view === 'all' && "No se encontraron usuarios. ¡Empieza creando uno!"}
+                  {view === 'active' && "No se encontraron usuarios activos."}
+                  {view === 'inactive' && "No se encontraron usuarios inactivos."}
+                </p>
               </div>
             )}
-            {!isLoading && !error && usuarios.length > 0 && (
+            {!isLoading && !error && displayedUsuarios.length > 0 && (
               <div className="overflow-x-auto mt-6">
                 <Table className="min-w-full">
                   <TableHeader className="bg-amber-50">
@@ -134,17 +202,21 @@ export default function GestionUsuariosPage() {
                       <TableHead className="text-amber-700 font-semibold">DNI</TableHead>
                       <TableHead className="text-amber-700 font-semibold">Correo</TableHead>
                       <TableHead className="text-amber-700 font-semibold">Rol</TableHead>
+                      <TableHead className="text-amber-700 font-semibold">Estado</TableHead>
                       <TableHead className="text-amber-700 font-semibold">Último Acceso</TableHead>
                       <TableHead className="text-amber-700 font-semibold text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {usuarios.map((usuario) => (
+                    {displayedUsuarios.map((usuario) => {
+                       const isActivo = usuario.estado === 'ACTIVO';
+                       return(
                       <TableRow key={usuario.id} className="hover:bg-amber-50/50">
                         <TableCell className="text-muted-foreground">{`${usuario.nombre || ''} ${usuario.apellido || ''}`.trim() || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{usuario.dni || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{usuario.correo || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{usuario.rol || 'N/A'}</TableCell>
+                        <TableCell className="text-muted-foreground">{usuario.estado || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{formatDateTime(usuario.ultimoAcceso)}</TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button 
@@ -152,22 +224,50 @@ export default function GestionUsuariosPage() {
                             size="icon" 
                             className="text-amber-600 border-amber-300 hover:bg-amber-100 hover:text-amber-700" 
                             onClick={() => handleNavigateToEditUser(usuario.id)}
+                            disabled={isStateChanging}
+                            title="Editar"
                           >
                             <Edit2 className="h-4 w-4" />
                             <span className="sr-only">Editar</span>
                           </Button>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className="text-red-500 border-red-300 hover:bg-red-100 hover:text-red-600" 
-                            onClick={() => toast({title: 'Próximamente', description: 'Funcionalidad de eliminar estará disponible pronto.'})}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Eliminar</span>
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                               <Button 
+                                  variant="outline" 
+                                  size="icon" 
+                                  className={isActivo ? "text-red-500 border-red-300 hover:bg-red-100 hover:text-red-600" : "text-green-500 border-green-300 hover:bg-green-100 hover:text-green-600"}
+                                  disabled={isStateChanging}
+                                  title={isActivo ? "Desactivar" : "Activar"}
+                                >
+                                  {isActivo ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                                  <span className="sr-only">{isActivo ? "Desactivar" : "Activar"}</span>
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>¿Confirmar cambio de estado?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    {isActivo 
+                                    ? `¿Estás seguro de que quieres desactivar al usuario: "${usuario.nombre || 'este usuario'}"?` 
+                                    : `¿Estás seguro de que quieres reactivar al usuario: "${usuario.nombre || 'este usuario'}"?`}
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel disabled={isStateChanging}>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction 
+                                    onClick={() => handleChangeStatus(usuario.id, isActivo ? 'INACTIVO' : 'ACTIVO')}
+                                    disabled={isStateChanging}
+                                    className={isActivo ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
+                                >
+                                    {isStateChanging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isActivo ? 'Desactivar' : 'Activar'}
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )})}
                   </TableBody>
                 </Table>
               </div>
@@ -178,3 +278,5 @@ export default function GestionUsuariosPage() {
     </>
   );
 }
+
+    
