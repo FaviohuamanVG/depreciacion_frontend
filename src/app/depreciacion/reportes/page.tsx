@@ -9,7 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { FileText, Calculator, CalendarIcon, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { FileText, Calculator, CalendarIcon, Trash2, Loader2, AlertCircle, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -43,6 +47,11 @@ export default function ReportesPage() {
   // State for data fetching
   const [activos, setActivos] = useState<ActivoBasic[]>([]);
   const [depreciaciones, setDepreciaciones] = useState<Depreciacion[]>([]);
+
+  // State for editing
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingDepreciation, setEditingDepreciation] = useState<Depreciacion | null>(null);
+  const [editedObservaciones, setEditedObservaciones] = useState('');
   
   // State for loading and errors
   const [isLoading, setIsLoading] = useState({
@@ -50,6 +59,7 @@ export default function ReportesPage() {
     depreciaciones: true,
     calculating: false,
     deleting: false,
+    updating: false,
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -122,6 +132,44 @@ export default function ReportesPage() {
       setIsLoading(prev => ({ ...prev, calculating: false }));
     }
   };
+
+  const handleOpenEditDialog = (dep: Depreciacion) => {
+    setEditingDepreciation(dep);
+    setEditedObservaciones(dep.observaciones || '');
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateDepreciation = async () => {
+    if (!editingDepreciation) return;
+    setIsLoading(prev => ({ ...prev, updating: true }));
+    
+    const updatedDepreciation = {
+      ...editingDepreciation,
+      observaciones: editedObservaciones,
+    };
+
+    try {
+      const response = await fetch(`${API_BASE_URL_DEPRECIACIONES}/${editingDepreciation.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedDepreciation),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Error al actualizar.' }));
+        throw new Error(errorData.message || `Error ${response.status}`);
+      }
+      toast({ title: 'Éxito', description: 'Registro de depreciación actualizado.' });
+      fetchDepreciaciones();
+      setIsEditDialogOpen(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error desconocido.';
+      toast({ title: 'Error al Actualizar', description: message, variant: 'destructive' });
+    } finally {
+      setIsLoading(prev => ({ ...prev, updating: false }));
+    }
+  };
+
 
   const handleDeleteDepreciacion = async (depreciacionId: string) => {
     setIsLoading(prev => ({ ...prev, deleting: true }));
@@ -286,14 +334,25 @@ export default function ReportesPage() {
                         <TableCell className="text-muted-foreground text-right">{formatCurrency(dep.valorDepreciado)}</TableCell>
                         <TableCell className="text-muted-foreground text-right">{formatCurrency(dep.valorLibros)}</TableCell>
                         <TableCell className="text-muted-foreground max-w-xs truncate">{dep.observaciones || 'N/A'}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right space-x-2">
+                           <Button
+                              variant="outline"
+                              size="icon"
+                              className="text-amber-600 border-amber-300 hover:bg-amber-100 hover:text-amber-700"
+                              disabled={isLoading.deleting || isLoading.updating}
+                              onClick={() => handleOpenEditDialog(dep)}
+                              title="Editar Registro"
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span className="sr-only">Editar</span>
+                            </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
                                 variant="outline"
                                 size="icon"
                                 className="text-red-500 border-red-300 hover:bg-red-100 hover:text-red-600"
-                                disabled={isLoading.deleting}
+                                disabled={isLoading.deleting || isLoading.updating}
                                 title="Eliminar Registro"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -330,6 +389,49 @@ export default function ReportesPage() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Edit Depreciation Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Editar Registro de Depreciación</DialogTitle>
+            <DialogDescription>
+              Modifica los detalles del registro. Haz clic en guardar cuando termines.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="observaciones" className="text-right col-span-1">
+                Observaciones
+              </Label>
+              <Textarea
+                id="observaciones"
+                value={editedObservaciones}
+                onChange={(e) => setEditedObservaciones(e.target.value)}
+                className="col-span-3"
+                rows={4}
+                disabled={isLoading.updating}
+              />
+            </div>
+             <div className="text-xs text-muted-foreground p-2 border rounded-md bg-amber-50">
+                <p><b>Activo:</b> {editingDepreciation ? (activosMap.get(editingDepreciation.activoId) || 'N/A') : 'N/A'}</p>
+                <p><b>Fecha:</b> {editingDepreciation ? formatDate(editingDepreciation.fecha) : 'N/A'}</p>
+                <p><b>Valor Depreciado:</b> {editingDepreciation ? formatCurrency(editingDepreciation.valorDepreciado) : 'N/A'}</p>
+                <p><b>Valor en Libros:</b> {editingDepreciation ? formatCurrency(editingDepreciation.valorLibros) : 'N/A'}</p>
+             </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={isLoading.updating}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateDepreciation} disabled={isLoading.updating}>
+              {isLoading.updating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </>
   );
 }
