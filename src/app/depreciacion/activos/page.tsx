@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Archive, PlusCircle, Edit2, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Archive, PlusCircle, Edit2, Loader2, AlertCircle, ArchiveRestore } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const API_BASE_URL_ACTIVOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.github.dev/api/activos';
@@ -35,7 +35,7 @@ export default function ActivosPage() {
   const [activos, setActivos] = useState<Activo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isStateChanging, setIsStateChanging] = useState(false);
 
   const fetchActivos = async () => {
     setIsLoading(true);
@@ -73,33 +73,39 @@ export default function ActivosPage() {
     router.push(`/depreciacion/activos/editar/${activoId}`);
   };
 
-  const handleDeleteActivo = async (activoId: string) => {
-    setIsDeleting(true);
+  const handleChangeStatus = async (activoId: string, newStatus: 'ACTIVO' | 'INACTIVO') => {
+    setIsStateChanging(true);
+    const action = newStatus === 'ACTIVO' ? 'activar' : 'desactivar';
     try {
-      const response = await fetch(`${API_BASE_URL_ACTIVOS}/${activoId}`, {
-        method: 'DELETE',
+      const response = await fetch(`${API_BASE_URL_ACTIVOS}/${activoId}/${action}`, {
+        method: 'PUT',
       });
-      if (response.ok || response.status === 204) { // 204 No Content is also a success for DELETE
+
+      if (response.ok) {
+        const updatedActivo = await response.json();
         toast({
-          title: 'Activo Eliminado',
-          description: 'El activo ha sido eliminado exitosamente.',
+          title: `Activo ${action === 'activar' ? 'Activado' : 'Desactivado'}`,
+          description: 'El estado del activo ha sido actualizado.',
         });
-        setActivos(prevActivos => prevActivos.filter(a => a.id !== activoId));
+        setActivos(prevActivos =>
+          prevActivos.map(a => (a.id === activoId ? updatedActivo : a))
+        );
       } else {
-        const errorData = await response.json().catch(() => ({ message: 'Error desconocido al eliminar activo.' }));
+        const errorData = await response.json().catch(() => ({ message: 'Error desconocido al cambiar estado.' }));
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al eliminar el activo.';
+      const message = err instanceof Error ? err.message : 'Error al cambiar estado.';
       toast({
-        title: 'Error al Eliminar',
+        title: 'Error al Actualizar Estado',
         description: message,
         variant: 'destructive',
       });
     } finally {
-      setIsDeleting(false);
+      setIsStateChanging(false);
     }
   };
+
 
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'N/A';
@@ -186,7 +192,9 @@ export default function ActivosPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {activos.map((activo) => (
+                    {activos.map((activo) => {
+                      const isActivo = activo.estado === 'ACTIVO' || activo.estado === 'EN_MANTENIMIENTO';
+                      return (
                       <TableRow key={activo.id} className="hover:bg-amber-50/50">
                         <TableCell className="text-muted-foreground font-medium max-w-xs truncate">{activo.descripcion || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{activo.tipo || 'N/A'}</TableCell>
@@ -203,7 +211,7 @@ export default function ActivosPage() {
                             size="icon" 
                             className="text-amber-600 border-amber-300 hover:bg-amber-100 hover:text-amber-700" 
                             onClick={() => handleNavigateToEditActivo(activo.id)}
-                            disabled={isDeleting}
+                            disabled={isStateChanging}
                             title="Editar"
                           >
                             <Edit2 className="h-4 w-4" />
@@ -214,37 +222,39 @@ export default function ActivosPage() {
                               <Button 
                                 variant="outline" 
                                 size="icon" 
-                                className="text-red-500 border-red-300 hover:bg-red-100 hover:text-red-600"
-                                disabled={isDeleting}
-                                title="Eliminar"
+                                className={isActivo ? "text-red-500 border-red-300 hover:bg-red-100 hover:text-red-600" : "text-green-500 border-green-300 hover:bg-green-100 hover:text-green-600"}
+                                disabled={isStateChanging}
+                                title={isActivo ? "Desactivar" : "Activar"}
                               >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Eliminar</span>
+                                {isActivo ? <Archive className="h-4 w-4" /> : <ArchiveRestore className="h-4 w-4" />}
+                                <span className="sr-only">{isActivo ? "Desactivar" : "Activar"}</span>
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>¿Confirmar Eliminación?</AlertDialogTitle>
+                                <AlertDialogTitle>¿Confirmar cambio de estado?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Esta acción no se puede deshacer. ¿Estás seguro de que quieres eliminar el activo: "{activo.descripcion || 'este activo'}"?
+                                  {isActivo 
+                                    ? `¿Estás seguro de que quieres desactivar el activo: "${activo.descripcion || 'este activo'}"?` 
+                                    : `¿Estás seguro de que quieres reactivar el activo: "${activo.descripcion || 'este activo'}"?`}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                                <AlertDialogCancel disabled={isStateChanging}>Cancelar</AlertDialogCancel>
                                 <AlertDialogAction 
-                                  onClick={() => handleDeleteActivo(activo.id)} 
-                                  disabled={isDeleting}
-                                  className="bg-red-600 hover:bg-red-700"
+                                  onClick={() => handleChangeStatus(activo.id, isActivo ? 'INACTIVO' : 'ACTIVO')}
+                                  disabled={isStateChanging}
+                                  className={isActivo ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
                                 >
-                                  {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                  Eliminar
+                                  {isStateChanging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                  {isActivo ? 'Desactivar' : 'Activar'}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )})}
                   </TableBody>
                 </Table>
               </div>
