@@ -16,12 +16,14 @@ const API_BASE_URL_USUARIOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.g
 interface Usuario {
   id: string;
   nombre: string;
-  apellido: string;
+  apellidos: string;
   dni: string;
   correo: string;
   rol: string;
   ultimoAcceso: string;
   estado: 'ACTIVO' | 'INACTIVO';
+  telefono?: string;
+  sedeId?: string;
 }
 
 export default function GestionUsuariosPage() {
@@ -201,6 +203,8 @@ export default function GestionUsuariosPage() {
                       <TableHead className="text-amber-700 font-semibold">Nombre Completo</TableHead>
                       <TableHead className="text-amber-700 font-semibold">DNI</TableHead>
                       <TableHead className="text-amber-700 font-semibold">Correo</TableHead>
+                      <TableHead className="text-amber-700 font-semibold">Teléfono</TableHead>
+                      <TableHead className="text-amber-700 font-semibold">Sede ID</TableHead>
                       <TableHead className="text-amber-700 font-semibold">Rol</TableHead>
                       <TableHead className="text-amber-700 font-semibold">Estado</TableHead>
                       <TableHead className="text-amber-700 font-semibold">Último Acceso</TableHead>
@@ -212,9 +216,11 @@ export default function GestionUsuariosPage() {
                        const isActivo = usuario.estado === 'ACTIVO';
                        return(
                       <TableRow key={usuario.id} className="hover:bg-amber-50/50">
-                        <TableCell className="text-muted-foreground">{`${usuario.nombre || ''} ${usuario.apellido || ''}`.trim() || 'N/A'}</TableCell>
+                        <TableCell className="text-muted-foreground">{`${usuario.nombre || ''} ${usuario.apellidos || ''}`.trim() || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{usuario.dni || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{usuario.correo || 'N/A'}</TableCell>
+                        <TableCell className="text-muted-foreground">{usuario.telefono || 'N/A'}</TableCell>
+                        <TableCell className="text-muted-foreground">{usuario.sedeId || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{usuario.rol || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{usuario.estado || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{formatDateTime(usuario.ultimoAcceso)}</TableCell>
@@ -278,5 +284,4 @@ export default function GestionUsuariosPage() {
     </>
   );
 }
-
     

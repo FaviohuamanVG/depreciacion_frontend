@@ -10,10 +10,9 @@ import Image from 'next/image';
 
 interface User {
   nombre?: string;
-  apellido?: string;
+  apellidos?: string;
   correo?: string;
   rol?: string;
-  // Add other fields from your backend Usuario model if needed
 }
 
 export default function SeleccionarDestinoPage() {
@@ -30,10 +29,10 @@ export default function SeleccionarDestinoPage() {
           setUser(parsedUser);
         } catch (error) {
           console.error("Failed to parse user from localStorage", error);
-          router.push('/'); // Redirect to login if data is malformed
+          router.push('/'); 
         }
       } else {
-        router.push('/'); // Redirect to login if no user data
+        router.push('/'); 
       }
       setIsLoading(false);
     }
@@ -59,8 +58,6 @@ export default function SeleccionarDestinoPage() {
   }
 
   if (!user) {
-    // This case should ideally be handled by the redirect in useEffect,
-    // but it's a fallback.
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
              <p className="text-destructive">Datos del usuario no encontrados. Redirigiendo al login...</p>
@@ -68,7 +65,7 @@ export default function SeleccionarDestinoPage() {
     );
   }
   
-  const displayName = user.nombre ? `${user.nombre}${user.apellido ? ' ' + user.apellido : ''}` : user.correo || 'Usuario';
+  const displayName = user.nombre ? `${user.nombre}${user.apellidos ? ' ' + user.apellidos : ''}` : user.correo || 'Usuario';
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-gray-100 to-stone-200 p-4">
@@ -83,7 +80,6 @@ export default function SeleccionarDestinoPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
-          {/* Botón de Depreciación siempre visible para usuarios logueados via backend */}
           <Button 
             onClick={() => router.push('/depreciacion')} 
             className="w-full text-lg py-6 bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -95,7 +91,6 @@ export default function SeleccionarDestinoPage() {
             <ArrowRight className="ml-auto h-5 w-5" />
           </Button>
           
-           {/* Botón de Pedido de Pollo siempre visible */}
            <Button 
             onClick={() => router.push('/pedido-pollo')} 
             className="w-full text-lg py-6 bg-orange-500 hover:bg-orange-600 text-white"

@@ -8,27 +8,31 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, AlertCircle, ArrowLeft } from 'lucide-react';
+import { UserPlus, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 
 const API_BASE_URL_USUARIOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.github.dev/api/usuarios';
 
 interface NewUser {
   nombre: string;
-  apellido: string;
+  apellidos: string;
   dni: string;
   correo: string;
   contrasena: string;
   rol: string;
+  telefono: string;
+  sedeId: string;
 }
 
 export default function CrearUsuarioPage() {
   const [newUser, setNewUser] = useState<NewUser>({
     nombre: '',
-    apellido: '',
+    apellidos: '',
     dni: '',
     correo: '',
     contrasena: '',
-    rol: 'usuario', // Default rol
+    rol: 'usuario', 
+    telefono: '',
+    sedeId: ''
   });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,7 +49,6 @@ export default function CrearUsuarioPage() {
     setError(null);
     setIsLoading(true);
 
-    // Validaciones básicas (puedes expandirlas)
     if (!newUser.correo || !newUser.contrasena || !newUser.nombre || !newUser.dni) {
       setError('Por favor, completa todos los campos obligatorios (Nombre, DNI, Correo, Contraseña).');
       setIsLoading(false);
@@ -59,8 +62,6 @@ export default function CrearUsuarioPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        // Tu backend espera un objeto Usuario, así que enviamos el estado newUser directamente.
-        // El backend asignará el ID y ultimoAcceso.
         body: JSON.stringify(newUser), 
       });
 
@@ -69,7 +70,7 @@ export default function CrearUsuarioPage() {
           title: 'Usuario Creado',
           description: `El usuario ${newUser.correo} ha sido creado exitosamente.`,
         });
-        router.push('/depreciacion/usuarios'); // Redirigir a la lista de usuarios o al dashboard
+        router.push('/depreciacion/usuarios');
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Error desconocido al crear usuario.' }));
         const errorMessage = errorData.message || `Error ${response.status}: ${response.statusText}`;
@@ -122,13 +123,19 @@ export default function CrearUsuarioPage() {
                   <Input id="nombre" name="nombre" type="text" placeholder="Juan" value={newUser.nombre} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="apellido" className="text-amber-700">Apellido</Label>
-                  <Input id="apellido" name="apellido" type="text" placeholder="Pérez" value={newUser.apellido} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                  <Label htmlFor="apellidos" className="text-amber-700">Apellidos</Label>
+                  <Input id="apellidos" name="apellidos" type="text" placeholder="Pérez" value={newUser.apellidos} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="dni" className="text-amber-700">DNI</Label>
-                <Input id="dni" name="dni" type="text" placeholder="12345678" value={newUser.dni} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="dni" className="text-amber-700">DNI</Label>
+                    <Input id="dni" name="dni" type="text" placeholder="12345678" value={newUser.dni} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="telefono" className="text-amber-700">Teléfono</Label>
+                    <Input id="telefono" name="telefono" type="text" placeholder="987654321" value={newUser.telefono} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="correo" className="text-amber-700">Correo Electrónico</Label>
@@ -138,9 +145,15 @@ export default function CrearUsuarioPage() {
                 <Label htmlFor="contrasena" className="text-amber-700">Contraseña</Label>
                 <Input id="contrasena" name="contrasena" type="password" placeholder="********" value={newUser.contrasena} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="rol" className="text-amber-700">Rol</Label>
-                <Input id="rol" name="rol" type="text" placeholder="usuario / admin" value={newUser.rol} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="rol" className="text-amber-700">Rol</Label>
+                    <Input id="rol" name="rol" type="text" placeholder="usuario / admin" value={newUser.rol} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="sedeId" className="text-amber-700">ID de Sede</Label>
+                    <Input id="sedeId" name="sedeId" type="text" placeholder="ID de la sede asignada" value={newUser.sedeId} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                </div>
               </div>
 
               {error && (
@@ -152,10 +165,7 @@ export default function CrearUsuarioPage() {
               <Button type="submit" className="w-full text-lg py-3 bg-amber-600 hover:bg-amber-700 text-white" disabled={isLoading}>
                 {isLoading ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                    <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
                     Creando Usuario...
                   </>
                 ) : (

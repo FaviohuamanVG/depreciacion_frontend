@@ -15,11 +15,12 @@ const API_BASE_URL_USUARIOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.g
 interface EditableUser {
   id: string;
   nombre: string;
-  apellido: string;
+  apellidos: string;
   dni: string;
   correo: string;
   rol: string;
-  // No incluimos contrasena para edición directa
+  telefono?: string;
+  sedeId?: string;
 }
 
 export default function EditarUsuarioPage() {
@@ -62,8 +63,6 @@ export default function EditarUsuarioPage() {
           description: message,
           variant: 'destructive',
         });
-        // Considerar redirigir si el usuario no se encuentra o hay un error grave
-        // router.push('/depreciacion/usuarios'); 
       } finally {
         setIsFetching(false);
       }
@@ -87,7 +86,6 @@ export default function EditarUsuarioPage() {
     setError(null);
     setIsLoading(true);
 
-    // Validaciones básicas
     if (!user.correo || !user.nombre || !user.dni || !user.rol) {
       setError('Por favor, completa todos los campos obligatorios (Nombre, DNI, Correo, Rol).');
       setIsLoading(false);
@@ -96,8 +94,6 @@ export default function EditarUsuarioPage() {
     }
 
     try {
-      // El backend espera el objeto completo, pero sin la contraseña si no se cambia.
-      // El ID ya está en la URL, el cuerpo es el objeto usuario modificado.
       const { id, ...updatePayload } = user; 
 
       const response = await fetch(`${API_BASE_URL_USUARIOS}/${user.id}`, {
@@ -147,7 +143,7 @@ export default function EditarUsuarioPage() {
     );
   }
 
-  if (error && !user) { // Si hay error al cargar y no tenemos datos del usuario
+  if (error && !user) {
      return (
       <main className="flex flex-1 flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
         <Card className="w-full max-w-md shadow-lg">
@@ -169,7 +165,7 @@ export default function EditarUsuarioPage() {
     );
   }
   
-  if (!user) { // Fallback si user es null después de cargar (aunque error debería cubrirlo)
+  if (!user) {
     return (
         <div className="flex flex-1 justify-center items-center min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 p-4">
             <p className="text-amber-700">No se encontraron datos del usuario para editar.</p>
@@ -204,27 +200,39 @@ export default function EditarUsuarioPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="nombre" className="text-amber-700">Nombre</Label>
-                  <Input id="nombre" name="nombre" type="text" placeholder="Juan" value={user.nombre} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                  <Input id="nombre" name="nombre" type="text" placeholder="Juan" value={user.nombre || ''} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="apellido" className="text-amber-700">Apellido</Label>
-                  <Input id="apellido" name="apellido" type="text" placeholder="Pérez" value={user.apellido} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                  <Label htmlFor="apellidos" className="text-amber-700">Apellidos</Label>
+                  <Input id="apellidos" name="apellidos" type="text" placeholder="Pérez" value={user.apellidos || ''} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="dni" className="text-amber-700">DNI</Label>
-                <Input id="dni" name="dni" type="text" placeholder="12345678" value={user.dni} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="dni" className="text-amber-700">DNI</Label>
+                    <Input id="dni" name="dni" type="text" placeholder="12345678" value={user.dni || ''} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="telefono" className="text-amber-700">Teléfono</Label>
+                    <Input id="telefono" name="telefono" type="text" placeholder="987654321" value={user.telefono || ''} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="correo" className="text-amber-700">Correo Electrónico</Label>
-                <Input id="correo" name="correo" type="email" placeholder="usuario@example.com" value={user.correo} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                <Input id="correo" name="correo" type="email" placeholder="usuario@example.com" value={user.correo || ''} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="rol" className="text-amber-700">Rol</Label>
-                <Input id="rol" name="rol" type="text" placeholder="usuario / admin" value={user.rol} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="rol" className="text-amber-700">Rol</Label>
+                    <Input id="rol" name="rol" type="text" placeholder="usuario / admin" value={user.rol || ''} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="sedeId" className="text-amber-700">ID de Sede</Label>
+                    <Input id="sedeId" name="sedeId" type="text" placeholder="ID de la sede asignada" value={user.sedeId || ''} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                </div>
               </div>
-
-              {error && !isFetching && ( // Mostrar error de submit, no el de carga inicial si ya tenemos user
+              
+              {error && !isFetching && (
                 <div className="flex items-center p-3 text-sm text-red-700 bg-red-100 border border-red-300 rounded-md">
                   <AlertCircle className="w-5 h-5 mr-2 shrink-0" />
                   <p>{error}</p>

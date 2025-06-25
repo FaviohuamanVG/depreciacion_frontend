@@ -9,28 +9,32 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, AlertCircle, LogIn, Home } from 'lucide-react';
+import { UserPlus, AlertCircle, LogIn, Home, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
 const API_BASE_URL_USUARIOS = 'https://humble-acorn-4j7wv774w4rg2qj4x-8080.app.github.dev/api/usuarios';
 
 interface NewUser {
   nombre: string;
-  apellido: string;
+  apellidos: string;
   dni: string;
   correo: string;
   contrasena: string;
   rol: string;
+  telefono: string;
+  sedeId: string;
 }
 
 export default function RegisterPage() {
   const [newUser, setNewUser] = useState<NewUser>({
     nombre: '',
-    apellido: '',
+    apellidos: '',
     dni: '',
     correo: '',
     contrasena: '',
-    rol: 'usuario', // Default rol for public registration
+    rol: 'usuario', 
+    telefono: '',
+    sedeId: ''
   });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,22 +51,13 @@ export default function RegisterPage() {
     setError(null);
     setIsLoading(true);
 
-    if (!newUser.correo || !newUser.contrasena || !newUser.nombre || !newUser.dni) {
-      setError('Please fill in all required fields (Name, DNI, Email, Password).');
+    if (!newUser.correo || !newUser.contrasena || !newUser.nombre || !newUser.apellidos || !newUser.dni) {
+      setError('Please fill in all required fields (Name, Last Name, DNI, Email, Password).');
       setIsLoading(false);
       toast({ title: 'Validation Error', description: 'Required fields are missing.', variant: 'destructive'});
       return;
     }
-    if (newUser.rol !== 'usuario' && newUser.rol !== 'admin') {
-       setError('Invalid role. Must be "usuario" or "admin".');
-       setIsLoading(false);
-       toast({ title: 'Validation Error', description: 'Role must be "usuario" or "admin". Public registration defaults to "usuario".', variant: 'destructive'});
-       // For public registration, we could silently force 'usuario' or keep this validation
-       // setNewUser(prev => ({ ...prev, rol: 'usuario' })); 
-       return;
-    }
-
-
+    
     try {
       const response = await fetch(API_BASE_URL_USUARIOS, {
         method: 'POST',
@@ -77,7 +72,7 @@ export default function RegisterPage() {
           title: 'Registration Successful',
           description: `User ${newUser.correo} has been created. Please log in.`,
         });
-        router.push('/'); // Redirect to login page
+        router.push('/'); 
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error creating user.' }));
         const errorMessage = errorData.message || `Error ${response.status}: ${response.statusText}`;
@@ -120,13 +115,19 @@ export default function RegisterPage() {
                         <Input id="nombre" name="nombre" type="text" placeholder="John" value={newUser.nombre} onChange={handleChange} disabled={isLoading} />
                         </div>
                         <div className="space-y-1">
-                        <Label htmlFor="apellido">Last Name</Label>
-                        <Input id="apellido" name="apellido" type="text" placeholder="Doe" value={newUser.apellido} onChange={handleChange} disabled={isLoading} />
+                        <Label htmlFor="apellidos">Last Name</Label>
+                        <Input id="apellidos" name="apellidos" type="text" placeholder="Doe" value={newUser.apellidos} onChange={handleChange} disabled={isLoading} />
                         </div>
                     </div>
-                    <div className="space-y-1">
-                        <Label htmlFor="dni">DNI</Label>
-                        <Input id="dni" name="dni" type="text" placeholder="12345678" value={newUser.dni} onChange={handleChange} disabled={isLoading} />
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <Label htmlFor="dni">DNI</Label>
+                            <Input id="dni" name="dni" type="text" placeholder="12345678" value={newUser.dni} onChange={handleChange} disabled={isLoading} />
+                        </div>
+                         <div className="space-y-1">
+                            <Label htmlFor="telefono">Phone</Label>
+                            <Input id="telefono" name="telefono" type="text" placeholder="987654321" value={newUser.telefono} onChange={handleChange} disabled={isLoading} />
+                        </div>
                     </div>
                     <div className="space-y-1">
                         <Label htmlFor="correo">Email</Label>
@@ -136,12 +137,18 @@ export default function RegisterPage() {
                         <Label htmlFor="contrasena">Password</Label>
                         <Input id="contrasena" name="contrasena" type="password" placeholder="********" value={newUser.contrasena} onChange={handleChange} disabled={isLoading} />
                     </div>
-                     <div className="space-y-1">
-                        <Label htmlFor="rol">Role (default: usuario)</Label>
-                        <Input id="rol" name="rol" type="text" value={newUser.rol} onChange={handleChange} disabled={isLoading} readOnly={newUser.rol === 'usuario'} title="Role will be 'usuario' for public registration." />
-                        <p className="text-xs text-muted-foreground">Public registration defaults to 'usuario'. Admins can change roles later.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <Label htmlFor="rol">Role (default: usuario)</Label>
+                            <Input id="rol" name="rol" type="text" value={newUser.rol} onChange={handleChange} disabled={isLoading} />
+                            <p className="text-xs text-muted-foreground">Admins can change roles later.</p>
+                        </div>
+                         <div className="space-y-1">
+                            <Label htmlFor="sedeId">Sede ID</Label>
+                            <Input id="sedeId" name="sedeId" type="text" placeholder="Assigned Sede ID" value={newUser.sedeId} onChange={handleChange} disabled={isLoading} />
+                        </div>
                     </div>
-
+                    
                     {error && (
                         <div className="flex items-center p-3 text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-md">
                         <AlertCircle className="w-5 h-5 mr-2 shrink-0" />
@@ -151,10 +158,7 @@ export default function RegisterPage() {
                     <Button type="submit" className="w-full text-lg py-3" disabled={isLoading}>
                         {isLoading ? (
                         <>
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
+                           <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
                             Registering...
                         </>
                         ) : (
