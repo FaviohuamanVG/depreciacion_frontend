@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Users, UserPlus, AlertCircle, Loader2, Edit2, UserX, UserCheck, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -34,6 +35,7 @@ export default function GestionUsuariosPage() {
   const [error, setError] = useState<string | null>(null);
   const [isStateChanging, setIsStateChanging] = useState(false);
   const [view, setView] = useState<'all' | 'active' | 'inactive'>('all');
+  const [sedeIdFilter, setSedeIdFilter] = useState('');
 
   const fetchUsuarios = async () => {
     setIsLoading(true);
@@ -64,16 +66,22 @@ export default function GestionUsuariosPage() {
   }, []);
 
   const displayedUsuarios = useMemo(() => {
+    let filtered = usuarios;
+
+    if (sedeIdFilter) {
+      filtered = filtered.filter(u => u.sedeId?.toLowerCase().includes(sedeIdFilter.toLowerCase()));
+    }
+    
     switch (view) {
       case 'active':
-        return usuarios.filter(u => u.estado === 'ACTIVO');
+        return filtered.filter(u => u.estado === 'ACTIVO');
       case 'inactive':
-        return usuarios.filter(u => u.estado === 'INACTIVO');
+        return filtered.filter(u => u.estado === 'INACTIVO');
       case 'all':
       default:
-        return usuarios;
+        return filtered;
     }
-  }, [usuarios, view]);
+  }, [usuarios, view, sedeIdFilter]);
 
 
   const handleNavigateToCreateUser = () => {
@@ -151,7 +159,13 @@ export default function GestionUsuariosPage() {
                 Administra los usuarios del sistema de depreciación.
               </CardDescription>
             </div>
-             <div className="flex w-full sm:w-auto items-center gap-2">
+             <div className="flex flex-col sm:flex-row w-full sm:w-auto items-center gap-2">
+                <Input
+                  placeholder="Filtrar por Sede ID..."
+                  value={sedeIdFilter}
+                  onChange={(e) => setSedeIdFilter(e.target.value)}
+                  className="w-full sm:w-[180px] bg-white border-amber-300"
+                />
                 <Select value={view} onValueChange={(value) => setView(value as any)}>
                     <SelectTrigger className="w-full sm:w-[180px] bg-white border-amber-300">
                         <Filter className="mr-2 h-4 w-4" />
@@ -163,7 +177,7 @@ export default function GestionUsuariosPage() {
                         <SelectItem value="inactive">Mostrar Inactivos</SelectItem>
                     </SelectContent>
                 </Select>
-                <Button onClick={handleNavigateToCreateUser} className="bg-amber-600 hover:bg-amber-700 text-white shrink-0">
+                <Button onClick={handleNavigateToCreateUser} className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 w-full sm:w-auto">
                   <UserPlus className="mr-2 h-5 w-5" />
                   Crear Nuevo Usuario
                 </Button>
@@ -189,9 +203,7 @@ export default function GestionUsuariosPage() {
             {!isLoading && !error && displayedUsuarios.length === 0 && (
               <div className="mt-6 border-2 border-dashed border-amber-300 rounded-lg p-10 text-center text-amber-500">
                  <p>
-                  {view === 'all' && "No se encontraron usuarios. ¡Empieza creando uno!"}
-                  {view === 'active' && "No se encontraron usuarios activos."}
-                  {view === 'inactive' && "No se encontraron usuarios inactivos."}
+                  No se encontraron usuarios que coincidan con los filtros aplicados.
                 </p>
               </div>
             )}
