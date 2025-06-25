@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 
@@ -22,6 +23,14 @@ interface NewUser {
   telefono: string;
   sedeId: string;
 }
+
+// TODO: Replace with an API call to fetch actual sedes
+const sedes = [
+  { id: 'S001', nombre: 'Sede Principal - Centro' },
+  { id: 'S002', nombre: 'Sucursal Norte' },
+  { id: 'S003', nombre: 'Sucursal Sur' },
+  { id: 'S004', nombre: 'Almacén Central' },
+];
 
 export default function CrearUsuarioPage() {
   const [newUser, setNewUser] = useState<NewUser>({
@@ -44,13 +53,17 @@ export default function CrearUsuarioPage() {
     setNewUser(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleSelectChange = (name: keyof NewUser, value: string) => {
+    setNewUser(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
 
-    if (!newUser.correo || !newUser.contrasena || !newUser.nombre || !newUser.dni) {
-      setError('Por favor, completa todos los campos obligatorios (Nombre, DNI, Correo, Contraseña).');
+    if (!newUser.correo || !newUser.contrasena || !newUser.nombre || !newUser.dni || !newUser.sedeId) {
+      setError('Por favor, completa todos los campos obligatorios (Nombre, DNI, Correo, Contraseña, Sede).');
       setIsLoading(false);
       toast({ title: 'Error de Validación', description: 'Faltan campos obligatorios.', variant: 'destructive'});
       return;
@@ -151,8 +164,21 @@ export default function CrearUsuarioPage() {
                     <Input id="rol" name="rol" type="text" placeholder="usuario / admin" value={newUser.rol} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="sedeId" className="text-amber-700">ID de Sede</Label>
-                    <Input id="sedeId" name="sedeId" type="text" placeholder="ID de la sede asignada" value={newUser.sedeId} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                  <Label htmlFor="sedeId" className="text-amber-700">Sede</Label>
+                   <Select
+                      value={newUser.sedeId}
+                      onValueChange={(value) => handleSelectChange('sedeId', value)}
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger className="w-full border-amber-300 focus:border-amber-500 ring-offset-amber-50">
+                        <SelectValue placeholder="Seleccione una sede" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sedes.map(sede => (
+                          <SelectItem key={sede.id} value={sede.id}>{sede.nombre}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                 </div>
               </div>
 
@@ -185,3 +211,5 @@ export default function CrearUsuarioPage() {
     </>
   );
 }
+
+    

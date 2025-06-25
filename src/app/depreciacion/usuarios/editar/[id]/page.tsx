@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Save, AlertCircle, ArrowLeft, Loader2, UserCog } from 'lucide-react';
 
@@ -22,6 +23,15 @@ interface EditableUser {
   telefono?: string;
   sedeId?: string;
 }
+
+// TODO: Replace with an API call to fetch actual sedes
+const sedes = [
+  { id: 'S001', nombre: 'Sede Principal - Centro' },
+  { id: 'S002', nombre: 'Sucursal Norte' },
+  { id: 'S003', nombre: 'Sucursal Sur' },
+  { id: 'S004', nombre: 'Almacén Central' },
+];
+
 
 export default function EditarUsuarioPage() {
   const router = useRouter();
@@ -76,6 +86,11 @@ export default function EditarUsuarioPage() {
     const { name, value } = e.target;
     setUser(prev => prev ? { ...prev, [name]: value } : null);
   };
+  
+  const handleSelectChange = (name: keyof EditableUser, value: string) => {
+    if (!user) return;
+    setUser(prev => prev ? { ...prev, [name]: value } : null);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -86,8 +101,8 @@ export default function EditarUsuarioPage() {
     setError(null);
     setIsLoading(true);
 
-    if (!user.correo || !user.nombre || !user.dni || !user.rol) {
-      setError('Por favor, completa todos los campos obligatorios (Nombre, DNI, Correo, Rol).');
+    if (!user.correo || !user.nombre || !user.dni || !user.rol || !user.sedeId) {
+      setError('Por favor, completa todos los campos obligatorios (Nombre, DNI, Correo, Rol, Sede).');
       setIsLoading(false);
       toast({ title: 'Error de Validación', description: 'Faltan campos obligatorios.', variant: 'destructive'});
       return;
@@ -227,8 +242,21 @@ export default function EditarUsuarioPage() {
                     <Input id="rol" name="rol" type="text" placeholder="usuario / admin" value={user.rol || ''} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="sedeId" className="text-amber-700">ID de Sede</Label>
-                    <Input id="sedeId" name="sedeId" type="text" placeholder="ID de la sede asignada" value={user.sedeId || ''} onChange={handleChange} disabled={isLoading} className="border-amber-300 focus:border-amber-500 ring-offset-amber-50" />
+                  <Label htmlFor="sedeId" className="text-amber-700">Sede</Label>
+                    <Select
+                      value={user.sedeId || ''}
+                      onValueChange={(value) => handleSelectChange('sedeId', value)}
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger className="w-full border-amber-300 focus:border-amber-500 ring-offset-amber-50">
+                        <SelectValue placeholder="Seleccione una sede" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sedes.map(sede => (
+                          <SelectItem key={sede.id} value={sede.id}>{sede.nombre}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                 </div>
               </div>
               
@@ -261,3 +289,5 @@ export default function EditarUsuarioPage() {
     </>
   );
 }
+
+    
