@@ -237,17 +237,19 @@ export default function GestionUsuariosPage() {
                         <TableCell className="text-muted-foreground">{usuario.estado || 'N/A'}</TableCell>
                         <TableCell className="text-muted-foreground">{formatDateTime(usuario.ultimoAcceso)}</TableCell>
                         <TableCell className="text-right space-x-2">
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className="text-amber-600 border-amber-300 hover:bg-amber-100 hover:text-amber-700" 
-                            onClick={() => handleNavigateToEditUser(usuario.id)}
-                            disabled={isStateChanging}
-                            title="Editar"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                            <span className="sr-only">Editar</span>
-                          </Button>
+                          {isActivo && (
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              className="text-amber-600 border-amber-300 hover:bg-amber-100 hover:text-amber-700" 
+                              onClick={() => handleNavigateToEditUser(usuario.id)}
+                              disabled={isStateChanging}
+                              title="Editar"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                              <span className="sr-only">Editar</span>
+                            </Button>
+                          )}
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                                <Button 
