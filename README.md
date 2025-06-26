@@ -4,6 +4,9 @@ Este proyecto es una aplicación web diseñada para facilitar la administración
 
 La aplicación está construida con tecnologías modernas, ofreciendo una interfaz de usuario intuitiva y reactiva para una gestión eficiente.
 
+# Encargados:
+- Favio Huaman
+- Frank Salazar
 ---
 
 ## 🚀 Características Principales
